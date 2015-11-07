@@ -41,6 +41,15 @@ var destination = (router) => {
  * Returns top destinations based on a location
  */
 var getTop = g(function* (req, res, next) {
+
+  var destinations = yield Destination.findAll({attributes : Destination.attr})
+  var sent = false
+
+  if (destinations.length > 0) {
+    res.spit(destinations)
+    sent = true
+  }
+
   req.query = req.query || {}
   req.query.origincountry = req.query.origincountry || 'BR'
   req.query.lookbackweeks = req.query.lookbackweeks || 8
@@ -57,14 +66,14 @@ var getTop = g(function* (req, res, next) {
   }
 
   var sabre_response = yield request(sabre_options)
-  var result = {status: sabre_response.statusCode}
+  var result
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
     result.error = sabre_response.error
   } else {
     var body = JSON.parse(sabre_response.body)
 
-    result.data = []
+    result = []
     for(let _d of body.Destinations) {
       var d = {}
       d.city = _d.Destination.CityName || _d.Destination.MetropolitanAreaName || ''
@@ -97,12 +106,14 @@ var getTop = g(function* (req, res, next) {
         d = destination
       }
 
-      result.data.push(d)
+      result.push(d)
     }
   }
 
-  res.setHeader('Content-Type', 'application/json')
-  res.send(result)
+  if (!sent) {
+    res.setHeader('Content-Type', 'application/json')
+    res.spit(result)
+  }
 })
 
 /**
