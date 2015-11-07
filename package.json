@@ -1,0 +1,15 @@
+{
+  "name": "audio-mail",
+  "description": "Audio Mail",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "body-parser": "1.14.1",
+    "co-express": "1.2.1",
+    "co-request": "^1.0.0",
+    "dotenv": "1.2.0",
+    "express": "4.13.3",
+    "querystring": "^0.2.0",
+    "yelp": "^0.2.0"
+  }
+}
