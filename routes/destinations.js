@@ -42,10 +42,15 @@ var destination = (router) => {
  */
 var getTop = g(function* (req, res, next) {
 
-  var destinations = yield Destination.findAll({attributes : Destination.attr})
+  var destinations = yield Destination.findAll({
+    attributes : Destination.attr,
+    limit : req.query.limit,
+    order : ['weight']
+  })
+
   var sent = false
 
-  if (destinations.length > 0) {
+  if (destinations.length == req.query.limit) {
     res.spit(destinations)
     sent = true
   }
@@ -74,8 +79,13 @@ var getTop = g(function* (req, res, next) {
     var body = JSON.parse(sabre_response.body)
 
     result = []
+
+    var date = new Date().getTime()
+    var i = 0
+
     for(let _d of body.Destinations) {
       var d = {}
+      d.weight = "" + date + (i++)
       d.city = _d.Destination.CityName || _d.Destination.MetropolitanAreaName || ''
       d.country = _d.Destination.CountryName || ''
       d.region = _d.Destination.RegionName || ''

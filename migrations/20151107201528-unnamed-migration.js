@@ -4,6 +4,10 @@ module.exports = {
     up: function (queryInterface, Sequelize) {
         queryInterface.createTable('destinations',
             {
+                weight : {
+                    type          : Sequelize.STRING,
+                    allowNull     : false
+                },
                 city : {
                     type       : Sequelize.STRING,
                     allowNull  : false,
