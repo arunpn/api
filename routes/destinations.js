@@ -1,16 +1,21 @@
 'use strict'
 
+var g = require('co-express')
+    , request = require('co-request')
+    , querystring = require('querystring')
+
+/**
+ * Models
+ */
+var Destination = require('../models/destination')
+
+
 let GOOGLE_API_KEY = 'AIzaSyB5Q4l1SFgRemCPGFtmXYQyj_tpjKXpB-0'
 let YELP_OAUTH_CONSUMER_KEY = '8Bi6DFWjnldZgFpnb0Rl7g'
 let YELP_OAUTH_CONSUMER_SECRET = 'oQwVUPVZzSMW4HSII0NfSadBuqE'
 let YELP_OAUTH_TOKEN = 'kHOEFyvtDyUC7j-5nJ4MHfg_otpKSBcu'
 let YELP_OAUTH_TOKEN_SECRET = 'A0gM8aHoJ7tjP3UKTKaoPMrysdk'
 let YELP_OAUTH_SIGNATURE_METHOD = 'HMAC-SHA1'
-
-
-var g = require('co-express')
-var request = require('co-request')
-var querystring = require('querystring')
 
 var yelp = require('yelp').createClient({
   consumer_key: YELP_OAUTH_CONSUMER_KEY,
@@ -20,10 +25,10 @@ var yelp = require('yelp').createClient({
 })
 
 /**
- * Generates the user route
+ * Generates the destination route
  * @param express.Router router
  */
-var user = (router) => {
+var destination = (router) => {
 
     router.route('/destinations/top')
         .get(getTop)
@@ -31,10 +36,6 @@ var user = (router) => {
     router.route('/destination/')
         .get(getDetails)
 }
-
-/**
- * Routes for '/users'
- */
 
 /**
  * Returns top destinations based on a location
@@ -71,15 +72,29 @@ var getTop = g(function* (req, res, next) {
       d.region = _d.Destination.RegionName || ''
       d.image = ''
 
-      var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${d.city}, ${d.country}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
-      var google_response = yield request(url)
-
-      if (!google_response.error && google_response.statusCode == 200) {
-        var images = JSON.parse(google_response.body).responseData.results
-
-        if(images.length > 0) {
-          d.image = images[0].url
+      var destination = yield Destination.findOne({
+        attributes : Destination.attr,
+        where      : {
+          city    : d.city,
+          country : d.country
         }
+      })
+
+      if (!destination) {
+        var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${d.city}, ${d.country}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
+        var google_response = yield request(url)
+
+        if (!google_response.error && google_response.statusCode == 200) {
+          var images = JSON.parse(google_response.body).responseData.results
+
+          if(images.length > 0) {
+            d.image = images[0].url
+          }
+        }
+
+        yield Destination.create(d);
+      } else {
+        d = destination
       }
 
       result.data.push(d)
@@ -155,6 +170,6 @@ var getDetails = g(function* (req, res, next) {
 })
 
 /**
- * Expose routes/user
+ * Expose routes/destination
  */
-exports = module.exports = user
+exports = module.exports = destination
