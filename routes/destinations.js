@@ -1,8 +1,25 @@
 'use strict'
 
 var g = require('co-express')
+    , fs = require('fs')
+    , request5 = require('request')
     , request = require('co-request')
     , querystring = require('querystring')
+
+var requestPipToFile = function(url, filepath) {
+    return new Promise(function(resolve, reject) {
+        try {
+            var stream = fs.createWriteStream(filepath);
+            stream.on('finish', function() {
+                console.log("pipe finish");
+                return resolve(true);
+            });
+            return request5(url).pipe(stream);
+        } catch (e) {
+            return reject(e);
+        }
+    });
+};
 
 /**
  * Models
@@ -24,6 +41,17 @@ var yelp = require('yelp').createClient({
   token: YELP_OAUTH_TOKEN,
   token_secret: YELP_OAUTH_TOKEN_SECRET
 })
+
+String.prototype.hashCode = function() {
+  var hash = 0, i, chr, len;
+  if (this.length == 0) return hash;
+  for (i = 0, len = this.length; i < len; i++) {
+    chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
 
 /**
  * Generates the destination route
@@ -66,6 +94,9 @@ var search = g(function* (req, res, next) {
     sent = true
   }
 
+  req.query.query = req.query.query || ""
+  req.query.query = req.query.query.replace(/[ ,]/g, ".")
+
   var sabre_query = querystring.stringify(req.query)
 
   var sabre_options = {
@@ -95,6 +126,7 @@ var search = g(function* (req, res, next) {
       d.region = _city.stateName
       d.image = ''
       d.reference = _city.city + ', ' + _city.country
+      d.countryCode = _city.country
 
       var destination = yield Destination.findOne({
         attributes : Destination.attr,
@@ -184,6 +216,7 @@ var getTop = g(function* (req, res, next) {
       d.weight = "" + date + (i++)
       d.city = _d.Destination.CityName || _d.Destination.MetropolitanAreaName || ''
       d.country = _d.Destination.CountryName || ''
+      d.countryCode = _d.Destination.CountryCode || ''
       d.region = _d.Destination.RegionName || ''
       d.image = ''
       d.reference = d.city + ", " + d.country
@@ -206,6 +239,10 @@ var getTop = g(function* (req, res, next) {
             d.image = images[0].url
           }
         }
+
+        //yield requestPipToFile(d.image, './images/img' + d.reference.hashCode() + '.jpg');
+
+        //d.image = '/images/img' + d.reference.hashCode() + '.jpg'
 
         yield Destination.create(d);
       } else {
