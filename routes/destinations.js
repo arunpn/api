@@ -16,6 +16,7 @@ let YELP_OAUTH_CONSUMER_SECRET = 'oQwVUPVZzSMW4HSII0NfSadBuqE'
 let YELP_OAUTH_TOKEN = 'kHOEFyvtDyUC7j-5nJ4MHfg_otpKSBcu'
 let YELP_OAUTH_TOKEN_SECRET = 'A0gM8aHoJ7tjP3UKTKaoPMrysdk'
 let YELP_OAUTH_SIGNATURE_METHOD = 'HMAC-SHA1'
+let SABRE_AUTH_HEADER = 'Bearer T1RLAQITHiOB25iRslvyGrLuQDLlWioUNBBKWV7H/qncjBelC1wBzfPEAACgDnwfU7sLqEgGwMMFm9AqZrKkj/oKU9Zs2udW3vS8LX506n7wQCajp7SS8H3dIiMhk0LmJIhubQV69WCqVLYts+YAewkeMQelymqP/cL6HchZGpvTAsFOKO3qU/31zDtBAcKbuzLd0vjdn7fMf6TGyNkE72LpNSL8SbZpileBL0RU9qJC61uAeTlA7CrWG09ECO9u3Nc+SejAB8AQoPpK8g**'
 
 var yelp = require('yelp').createClient({
   consumer_key: YELP_OAUTH_CONSUMER_KEY,
@@ -29,6 +30,8 @@ var yelp = require('yelp').createClient({
  * @param express.Router router
  */
 var destination = (router) => {
+    router.route('/search')
+        .get(search)
 
     router.route('/destinations/top')
         .get(getTop)
@@ -36,6 +39,49 @@ var destination = (router) => {
     router.route('/destination/')
         .get(getDetails)
 }
+
+/**
+ * Returns a list of cities based on search query
+ */
+var search = g(function* (req, res, next) {
+  if(!req.query.query) res.err(res.errors.QUERY_IS_EMPTY, 400)
+  req.query.category = req.query.category || 'CITY'
+  req.query.limit = req.query.limit || 3
+
+  var sabre_query = querystring.stringify(req.query)
+
+  var sabre_options = {
+    url: `https://api.test.sabre.com/v1/lists/utilities/geoservices/autocomplete?${sabre_query}`,
+    headers: {
+      'Authorization': SABRE_AUTH_HEADER
+    }
+  }
+
+  var sabre_response = yield request(sabre_options)
+
+  if (sabre_response.error || sabre_response.statusCode != 200) {
+    res.err(res.errors.UNKNOWN_ERROR, sabre_response.statusCode)
+
+  } else {
+    var body = JSON.parse(sabre_response.body)
+
+    var result = []
+    for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
+      var item = {}
+      item.city = _city.city
+      item.country = _city.countryName
+      item.latitude = _city.latitude
+      item.longitude = _city.longitude
+
+      if(item.city && item.country)
+        result.push(item)
+    }
+
+    console.log(result);
+    res.setHeader('Content-Type', 'application/json')
+    res.spit(result)
+  }
+})
 
 /**
  * Returns top destinations based on a location
@@ -68,7 +114,7 @@ var getTop = g(function* (req, res, next) {
   var sabre_options = {
     url: `https://api.test.sabre.com/v1/lists/top/destinations?${sabre_query}`,
     headers: {
-      'Authorization': 'Bearer T1RLAQITHiOB25iRslvyGrLuQDLlWioUNBBKWV7H/qncjBelC1wBzfPEAACgDnwfU7sLqEgGwMMFm9AqZrKkj/oKU9Zs2udW3vS8LX506n7wQCajp7SS8H3dIiMhk0LmJIhubQV69WCqVLYts+YAewkeMQelymqP/cL6HchZGpvTAsFOKO3qU/31zDtBAcKbuzLd0vjdn7fMf6TGyNkE72LpNSL8SbZpileBL0RU9qJC61uAeTlA7CrWG09ECO9u3Nc+SejAB8AQoPpK8g**'
+      'Authorization': SABRE_AUTH_HEADER
     }
   }
 
