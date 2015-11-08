@@ -48,6 +48,24 @@ var search = g(function* (req, res, next) {
   req.query.category = req.query.category || 'CITY'
   req.query.limit = req.query.limit || 3
 
+  var destinations = yield Destination.findAll({
+    attributes : Destination.attr,
+    where : {
+      reference : {
+        $like : '%'+req.query.query+'%'
+      }
+    },
+    limit : req.query.limit,
+    order : ['weight']
+  })
+
+  var sent = false
+
+  if (destinations.length == req.query.limit) {
+    res.spit(destinations)
+    sent = true
+  }
+
   var sabre_query = querystring.stringify(req.query)
 
   var sabre_options = {
@@ -66,20 +84,50 @@ var search = g(function* (req, res, next) {
     var body = JSON.parse(sabre_response.body)
 
     var result = []
-    for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
-      var item = {}
-      item.city = _city.city
-      item.country = _city.countryName
-      item.latitude = _city.latitude
-      item.longitude = _city.longitude
+    var time = new Date().getTime()
+    var i = 0
 
-      if(item.city && item.country)
-        result.push(item)
+    for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
+      var d = {}
+      d.weight = time + (i++) + ""
+      d.city = _city.city
+      d.country = _city.countryName
+      d.region = _city.stateName
+      d.image = ''
+      d.reference = _city.city + ', ' + _city.country
+
+      var destination = yield Destination.findOne({
+        attributes : Destination.attr,
+        where      : {
+          reference : d.reference
+        }
+      })
+
+      if (!destination) {
+        var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${d.city}, ${d.country}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
+        var google_response = yield request(url)
+
+        if (!google_response.error && google_response.statusCode == 200) {
+          var images = JSON.parse(google_response.body).responseData.results
+
+          if(images.length > 0) {
+            d.image = images[0].url
+          }
+        }
+
+        yield Destination.create(d);
+      } else {
+        d = destination
+      }
+
+      if(d.city && d.country)
+        result.push(d)
     }
 
-    console.log(result);
-    res.setHeader('Content-Type', 'application/json')
-    res.spit(result)
+    if (!sent) {
+      res.setHeader('Content-Type', 'application/json')
+      res.spit(result)
+    }
   }
 })
 
@@ -178,7 +226,11 @@ var getTop = g(function* (req, res, next) {
 * Returns top destinations based on a location
 */
 var getDetails = g(function* (req, res, next) {
-
+  req.query = req.query || {}
+  req.query.location = req.query.location || 'Sao Paulo, Brazil'
+  req.query.sort = req.query.sort || 2
+  req.query.radius_filter = req.query.radius_filter || 20000
+  req.query.category_filter = req.query.category_filter || 'landmarks'
   req.query.limit = req.query.limit || 5
 
   var places = yield Place.findAll({
@@ -205,22 +257,15 @@ var getDetails = g(function* (req, res, next) {
     res.spit(places)
   }
 
-  req.query = req.query || {}
-  req.query.location = req.query.location || 'Sao Paulo, Brazil'
-  req.query.sort = req.query.sort || 2
-  req.query.radius_filter = req.query.radius_filter || 20000
-  req.query.category_filter = req.query.category_filter || 'landmarks'
   req.query.limit++
-
+  
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
-  var result
+  var result = []
 
   yelp.search(req.query, g(function*(error, data) {
-    result = {}
-
     if (error) {
-      result.status = 400
-      result.error = error
+      res.err(res.errors.UNKNOWN_ERROR, 400)
+      sent = true
 
     } else {
       result = []
@@ -243,7 +288,7 @@ var getDetails = g(function* (req, res, next) {
           place: _b.location.coordinate.latitude + "," + _b.location.coordinate.longitude
         }
 
-        var place = yield Place.findOne({
+        let place = yield Place.findOne({
           attributes : Place.attr,
           where      : {
             place : b.place
@@ -260,7 +305,7 @@ var getDetails = g(function* (req, res, next) {
             var images = JSON.parse(google_response.body).responseData.results
 
             b.images = []
-            for(var i = 0; i < 4 && i < images.length; i++) {
+            for(let i = 0; i < 4 && i < images.length; i++) {
               var image = {
                 width: images[i].width,
                 height: images[i].height,
@@ -272,11 +317,9 @@ var getDetails = g(function* (req, res, next) {
               yield Place.Images.create({
                 placePlace : b.place,
                 url : image.url
-              });
+              })
             }
           }
-
-
         }
 
         result.push(b)

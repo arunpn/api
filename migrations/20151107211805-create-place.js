@@ -26,23 +26,23 @@ module.exports = {
                 },
                 rating : {
                     type      : Sequelize.INTEGER,
-                    allowNull : false
+                    allowNull : true
                 },
                 review_text : {
                     type      : Sequelize.STRING,
-                    allowNull : false
+                    allowNull : true
                 },
                 review_image : {
                     type      : Sequelize.STRING,
-                    allowNull : false
+                    allowNull : true
                 },
                 review_count : {
                     type      : Sequelize.INTEGER,
-                    allowNull : false
+                    allowNull : true
                 },
                 phone : {
                     type      : Sequelize.STRING,
-                    allowNull : false
+                    allowNull : true
                 },
                 latitude : {
                     type      : Sequelize.STRING,
