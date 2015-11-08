@@ -77,7 +77,6 @@ var search = g(function* (req, res, next) {
         result.push(item)
     }
 
-    console.log(result);
     res.setHeader('Content-Type', 'application/json')
     res.spit(result)
   }
@@ -178,7 +177,11 @@ var getTop = g(function* (req, res, next) {
 * Returns top destinations based on a location
 */
 var getDetails = g(function* (req, res, next) {
-
+req.query = req.query || {}
+req.query.location = req.query.location || 'Sao Paulo, Brazil'
+req.query.sort = req.query.sort || 2
+req.query.radius_filter = req.query.radius_filter || 20000
+req.query.category_filter = req.query.category_filter || 'landmarks'
   req.query.limit = req.query.limit || 5
 
   var places = yield Place.findAll({
@@ -192,32 +195,22 @@ var getDetails = g(function* (req, res, next) {
 
   var sent = false
 
-  if (places.length == req.query.limit) {
+  if (places.length >= req.query.limit) {
     res.spit(places)
     sent = true
   }
 
-  req.query = req.query || {}
-  req.query.location = req.query.location || 'Sao Paulo, Brazil'
-  req.query.sort = req.query.sort || 2
-  req.query.radius_filter = req.query.radius_filter || 20000
-  req.query.category_filter = req.query.category_filter || 'landmarks'
-
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
-  var result
+  var result = []
 
   yelp.search(req.query, g(function*(error, data) {
-    result = {}
-
     if (error) {
-      result.status = 400
-      result.error = error
+      res.err(res.errors.UNKNOWN_ERROR, 400)
+      sent = true
 
     } else {
-      result = []
-
       for(let _b of data.businesses) {
-        var b = {
+        let b = {
           destinationId: req.query.location,
           name: _b.name,
           rating: _b.rating,
@@ -230,7 +223,7 @@ var getDetails = g(function* (req, res, next) {
           place: _b.location.coordinate.latitude + "," + _b.location.coordinate.longitude
         }
 
-        var place = yield Place.findOne({
+        let place = yield Place.findOne({
           attributes : Place.attr,
           where      : {
             place : b.place
@@ -247,7 +240,7 @@ var getDetails = g(function* (req, res, next) {
             var images = JSON.parse(google_response.body).responseData.results
 
             b.images = []
-            for(var i = 0; i < 4 && i < images.length; i++) {
+            for(let i = 0; i < 4 && i < images.length; i++) {
               var image = {
                 width: images[i].width,
                 height: images[i].height,
@@ -259,11 +252,9 @@ var getDetails = g(function* (req, res, next) {
               yield Place.Images.create({
                 placePlace : b.place,
                 url : image.url
-              });
+              })
             }
           }
-
-
         }
 
         result.push(b)

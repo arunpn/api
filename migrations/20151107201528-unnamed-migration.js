@@ -6,7 +6,7 @@ module.exports = {
             {
                 weight : {
                     type          : Sequelize.STRING,
-                    allowNull     : false
+                    allowNull     : true
                 },
                 reference : {
                     type       : Sequelize.STRING,
@@ -27,7 +27,7 @@ module.exports = {
                 },
                 image : {
                     type      : Sequelize.STRING,
-                    allowNull : false
+                    allowNull : true
                 },
                 createdAt : {
                     type : Sequelize.DATE
