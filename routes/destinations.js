@@ -168,7 +168,7 @@ var getTop = g(function* (req, res, next) {
 
   req.query = req.query || {}
   req.query.origincountry = req.query.origincountry || 'BR'
-  req.query.lookbackweeks = req.query.lookbackweeks || 2
+  req.query.lookbackweeks = req.query.lookbackweeks || 8
   req.query.topdestinations = req.query.topdestinations || req.query.limit || 5
   delete req.query.limit
 
