@@ -8,7 +8,7 @@ var g = require('co-express')
  * Models
  */
 var Destination = require('../models/destination')
-
+var Place = require('../models/place')
 
 let GOOGLE_API_KEY = 'AIzaSyB5Q4l1SFgRemCPGFtmXYQyj_tpjKXpB-0'
 let YELP_OAUTH_CONSUMER_KEY = '8Bi6DFWjnldZgFpnb0Rl7g'
@@ -41,6 +41,8 @@ var destination = (router) => {
  * Returns top destinations based on a location
  */
 var getTop = g(function* (req, res, next) {
+
+  req.query.limit = req.query.limit || 5
 
   var destinations = yield Destination.findAll({
     attributes : Destination.attr,
@@ -90,12 +92,12 @@ var getTop = g(function* (req, res, next) {
       d.country = _d.Destination.CountryName || ''
       d.region = _d.Destination.RegionName || ''
       d.image = ''
+      d.reference = d.city + ", " + d.country
 
       var destination = yield Destination.findOne({
         attributes : Destination.attr,
         where      : {
-          city    : d.city,
-          country : d.country
+          reference : d.reference
         }
       })
 
@@ -130,15 +132,34 @@ var getTop = g(function* (req, res, next) {
 * Returns top destinations based on a location
 */
 var getDetails = g(function* (req, res, next) {
+
+  req.query.limit = req.query.limit || 5
+
+  var places = yield Place.findAll({
+    attributes : Place.attr,
+    where : {
+      destinationId : req.query.location
+    },
+    limit : req.query.limit,
+    include : [Place.Images]
+  })
+
+  var sent = false
+
+  if (places.length == req.query.limit) {
+    res.spit(places)
+    sent = true
+  }
+
   req.query = req.query || {}
   req.query.location = req.query.location || 'Sao Paulo, Brazil'
   req.query.sort = req.query.sort || 2
-  req.query.limit = req.query.limit || 5
   req.query.radius_filter = req.query.radius_filter || 20000
   req.query.category_filter = req.query.category_filter || 'landmarks'
 
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
-  var result = {}
+  var result
+
   yelp.search(req.query, g(function*(error, data) {
     result = {}
 
@@ -147,11 +168,11 @@ var getDetails = g(function* (req, res, next) {
       result.error = error
 
     } else {
-      result.status = 200
-      result.data = []
+      result = []
 
       for(let _b of data.businesses) {
-        let b = {
+        var b = {
+          destinationId: req.query.location,
           name: _b.name,
           rating: _b.rating,
           review_text: _b.snippet_text,
@@ -160,33 +181,53 @@ var getDetails = g(function* (req, res, next) {
           phone: _b.display_phone,
           latitude: _b.location.coordinate.latitude,
           longitude: _b.location.coordinate.longitude,
-          images: []
+          place: _b.location.coordinate.latitude + "," + _b.location.coordinate.longitude
         }
 
-        var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${b.name}, ${req.query.location}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
-        var google_response = yield request(url)
+        var place = yield Place.findOne({
+          attributes : Place.attr,
+          where      : {
+            place : b.place
+          }
+        })
 
-        if (!google_response.error && google_response.statusCode == 200) {
-          var images = JSON.parse(google_response.body).responseData.results
+        if (!place) {
+          yield Place.create(b);
 
-          b.images = []
-          for(var i = 0; i < 4 && i < images.length; i++) {
-            var image = {
-              width: images[i].width,
-              height: images[i].height,
-              url: images[i].url
+          var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${b.name}, ${req.query.location}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
+          var google_response = yield request(url)
+
+          if (!google_response.error && google_response.statusCode == 200) {
+            var images = JSON.parse(google_response.body).responseData.results
+
+            b.images = []
+            for(var i = 0; i < 4 && i < images.length; i++) {
+              var image = {
+                width: images[i].width,
+                height: images[i].height,
+                url: images[i].url
+              }
+
+              b.images.push(image)
+
+              yield Place.Images.create({
+                placePlace : b.place,
+                url : image.url
+              });
             }
-
-            b.images.push(image)
           }
 
-          result.data.push(b)
+
         }
+
+        result.push(b)
       }
     }
 
-    res.setHeader('Content-Type', 'application/json')
-    res.send(result)
+    if (!sent) {
+      res.setHeader('Content-Type', 'application/json')
+      res.send(result)
+    }
   }))
 })
 

@@ -8,15 +8,18 @@ module.exports = {
                     type          : Sequelize.STRING,
                     allowNull     : false
                 },
-                city : {
+                reference : {
                     type       : Sequelize.STRING,
                     allowNull  : false,
                     primaryKey : true
                 },
+                city : {
+                    type       : Sequelize.STRING,
+                    allowNull  : false
+                },
                 country : {
                     type      : Sequelize.STRING,
-                    allowNull : false,
-                    primaryKey : true
+                    allowNull : false
                 },
                 region : {
                     type      : Sequelize.STRING,
