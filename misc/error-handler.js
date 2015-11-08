@@ -4,14 +4,14 @@ var errors = {
     /**
      * Errors code and description
      */
-    '100' : 'User not found',
-    '101' : 'Token not found',
+    '100' : 'Unknown error',
+    '101' : 'Query cannot be empty',
 
     /**
      * Helpers
      */
-    USER_NOT_FOUND : 100,
-    TOKEN_NOT_FOUND : 101
+    UNKNOWN_ERROR : 100,
+    QUERY_IS_EMPTY : 101
 }
 
 /**
