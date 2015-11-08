@@ -8,12 +8,12 @@ var g = require('co-express')
  * The destination model
  */
 var Destination = sequelize.define('destination', {
-    reference : { type : Sequelize.STRING, primaryKey : true },
-    weight    : { type : Sequelize.STRING },
-    city      : { type : Sequelize.STRING },
-    country   : { type : Sequelize.STRING },
-    region    : { type : Sequelize.STRING },
-    image     : { type : Sequelize.STRING }
+    reference   : { type : Sequelize.STRING, primaryKey : true },
+    weight      : { type : Sequelize.STRING },
+    city        : { type : Sequelize.STRING },
+    country     : { type : Sequelize.STRING },
+    region      : { type : Sequelize.STRING },
+    image       : { type : Sequelize.STRING }
 })
 
 /**

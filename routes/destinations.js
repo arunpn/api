@@ -1,8 +1,25 @@
 'use strict'
 
 var g = require('co-express')
+    , fs = require('fs')
+    , request5 = require('request')
     , request = require('co-request')
     , querystring = require('querystring')
+
+var requestPipToFile = function(url, filepath) {
+    return new Promise(function(resolve, reject) {
+        try {
+            var stream = fs.createWriteStream(filepath);
+            stream.on('finish', function() {
+                console.log("pipe finish");
+                return resolve(true);
+            });
+            return request5(url).pipe(stream);
+        } catch (e) {
+            return reject(e);
+        }
+    });
+};
 
 /**
  * Models
@@ -26,6 +43,17 @@ var yelp = require('yelp').createClient({
   token: YELP_OAUTH_TOKEN,
   token_secret: YELP_OAUTH_TOKEN_SECRET
 })
+
+String.prototype.hashCode = function() {
+  var hash = 0, i, chr, len;
+  if (this.length == 0) return hash;
+  for (i = 0, len = this.length; i < len; i++) {
+    chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
 
 /**
  * Generates the destination route
@@ -57,6 +85,27 @@ var search = g(function* (req, res, next) {
   req.query.category = req.query.category || 'CITY'
   req.query.limit = req.query.limit || 3
 
+  var destinations = yield Destination.findAll({
+    attributes : Destination.attr,
+    where : {
+      reference : {
+        $like : '%'+req.query.query+'%'
+      }
+    },
+    limit : req.query.limit,
+    order : ['weight']
+  })
+
+  var sent = false
+
+  if (destinations.length == req.query.limit) {
+    res.spit(destinations)
+    sent = true
+  }
+
+  req.query.query = req.query.query || ""
+  req.query.query = req.query.query.replace(/[ ,]/g, ".")
+
   var sabre_query = querystring.stringify(req.query)
 
   var sabre_options = {
@@ -77,6 +126,9 @@ var search = g(function* (req, res, next) {
     var body = JSON.parse(sabre_response.body)
 
     var result = []
+    var time = new Date().getTime()
+    var i = 0
+
     for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
       var item = {}
       item.city = _city.city
@@ -198,7 +250,10 @@ var getAttractions = g(function* (req, res, next) {
   if (places.length + 1 >= req.query.limit) {
     res.spit(places)
     sent = true
+    res.spit(places)
   }
+
+  req.query.limit++
 
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
   var result = []
@@ -212,10 +267,16 @@ var getAttractions = g(function* (req, res, next) {
       }
 
     } else {
+      result = []
+
+      var date = new Date().getTime()
+      var i = 0
+
       for(let _b of data.businesses) {
         let b = {
           place: _b.name + ", " + destination.reference,
           destinationId: destination.reference,
+          weight: "" + date + (i++),
           name: _b.name,
           rating: _b.rating,
           review_text: _b.snippet_text,
@@ -246,7 +307,7 @@ var getAttractions = g(function* (req, res, next) {
 
     if (!sent) {
       res.setHeader('Content-Type', 'application/json')
-      res.send(result)
+      res.spit(result)
     }
   }))
 })
