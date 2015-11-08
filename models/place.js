@@ -20,7 +20,7 @@ var Place = sequelize.define('place', {
     place         : { type : Sequelize.STRING, primaryKey : true }
 })
 
-var PlaceImage = sequelize.define('place-image', {
+var PlaceImage = sequelize.define('placeImage', {
     url     : { type : Sequelize.STRING }
 })
 
@@ -48,9 +48,8 @@ PlaceImage.attr = {
     /* all */
 }
 
-Place.Images = PlaceImage
-
 /**
  * Expose models/place
  */
-exports = module.exports = Place
+module.exports.Place = Place
+module.exports.PlaceImage = PlaceImage

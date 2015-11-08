@@ -8,7 +8,9 @@ var g = require('co-express')
  * Models
  */
 var Destination = require('../models/destination')
-var Place = require('../models/place')
+var _Place = require('../models/place')
+var Place = _Place.Place
+var PlaceImage = _Place.PlaceImage
 
 let GOOGLE_API_KEY = 'AIzaSyB5Q4l1SFgRemCPGFtmXYQyj_tpjKXpB-0'
 let YELP_OAUTH_CONSUMER_KEY = '8Bi6DFWjnldZgFpnb0Rl7g'
@@ -37,14 +39,21 @@ var destination = (router) => {
         .get(getTop)
 
     router.route('/destination/')
-        .get(getDetails)
+        .get(getAttractions)
 }
 
 /**
  * Returns a list of cities based on search query
  */
 var search = g(function* (req, res, next) {
-  if(!req.query.query) res.err(res.errors.QUERY_IS_EMPTY, 400)
+  var sent = false
+
+  if(!req.query.query) {
+    console.log("search error: empty query \r\n")
+    res.err(res.errors.QUERY_IS_EMPTY, 400)
+    sent = true
+  }
+
   req.query.category = req.query.category || 'CITY'
   req.query.limit = req.query.limit || 3
 
@@ -60,7 +69,9 @@ var search = g(function* (req, res, next) {
   var sabre_response = yield request(sabre_options)
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
-    res.err(res.errors.UNKNOWN_ERROR, sabre_response.statusCode)
+    console.log("sabre error: \r\n", sabre_response.error)
+    res.err(res.errors.FAILED_TO_SEARCH_LOCATION, sabre_response.statusCode)
+    sent = true
 
   } else {
     var body = JSON.parse(sabre_response.body)
@@ -69,7 +80,7 @@ var search = g(function* (req, res, next) {
     for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
       var item = {}
       item.city = _city.city
-      item.country = _city.countryName
+      item.country = _city.country
       item.latitude = _city.latitude
       item.longitude = _city.longitude
 
@@ -77,16 +88,17 @@ var search = g(function* (req, res, next) {
         result.push(item)
     }
 
-    res.setHeader('Content-Type', 'application/json')
-    res.spit(result)
+    if(!sent) {
+      res.setHeader('Content-Type', 'application/json')
+      res.spit(result)
+    }
   }
 })
 
 /**
- * Returns top destinations based on a location
+ * Returns popular destinations based on a location
  */
 var getTop = g(function* (req, res, next) {
-
   req.query.limit = req.query.limit || 5
 
   var destinations = yield Destination.findAll({
@@ -97,14 +109,14 @@ var getTop = g(function* (req, res, next) {
 
   var sent = false
 
-  if (destinations.length == req.query.limit) {
+  if (destinations.length + 1 >= req.query.limit) {
     res.spit(destinations)
     sent = true
   }
 
   req.query = req.query || {}
   req.query.origincountry = req.query.origincountry || 'BR'
-  req.query.lookbackweeks = req.query.lookbackweeks || 8
+  req.query.lookbackweeks = req.query.lookbackweeks || 2
   req.query.topdestinations = req.query.topdestinations || req.query.limit || 5
   delete req.query.limit
 
@@ -118,14 +130,18 @@ var getTop = g(function* (req, res, next) {
   }
 
   var sabre_response = yield request(sabre_options)
-  var result
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
-    result.error = sabre_response.error
+    if(!sent) {
+      console.log("sabre error: \r\n", sabre_response.error)
+      res.err(res.errors.FAILED_TO_GET_TOP_DESTINATIONS, sabre_response.statusCode)
+      sent = true
+    }
+
   } else {
     var body = JSON.parse(sabre_response.body)
 
-    result = []
+    var result = []
 
     var date = new Date().getTime()
     var i = 0
@@ -134,34 +150,10 @@ var getTop = g(function* (req, res, next) {
       var d = {}
       d.weight = "" + date + (i++)
       d.city = _d.Destination.CityName || _d.Destination.MetropolitanAreaName || ''
-      d.country = _d.Destination.CountryName || ''
+      d.country = _d.Destination.CountryCode || ''
       d.region = _d.Destination.RegionName || ''
-      d.image = ''
-      d.reference = d.city + ", " + d.country
 
-      var destination = yield Destination.findOne({
-        attributes : Destination.attr,
-        where      : {
-          reference : d.reference
-        }
-      })
-
-      if (!destination) {
-        var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${d.city}, ${d.country}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
-        var google_response = yield request(url)
-
-        if (!google_response.error && google_response.statusCode == 200) {
-          var images = JSON.parse(google_response.body).responseData.results
-
-          if(images.length > 0) {
-            d.image = images[0].url
-          }
-        }
-
-        yield Destination.create(d);
-      } else {
-        d = destination
-      }
+      d = yield createDestinationFromObjectIfNotExists(d)
 
       result.push(d)
     }
@@ -174,28 +166,36 @@ var getTop = g(function* (req, res, next) {
 })
 
 /**
-* Returns top destinations based on a location
+* Returns attractions from a location
 */
-var getDetails = g(function* (req, res, next) {
-req.query = req.query || {}
-req.query.location = req.query.location || 'Sao Paulo, Brazil'
-req.query.sort = req.query.sort || 2
-req.query.radius_filter = req.query.radius_filter || 20000
-req.query.category_filter = req.query.category_filter || 'landmarks'
-  req.query.limit = req.query.limit || 5
+var getAttractions = g(function* (req, res, next) {
+  req.query = req.query || {}
+  req.query.location = req.query.location || 'Sao Paulo, BR'
+  req.query.sort = req.query.sort || 2
+  req.query.radius_filter = req.query.radius_filter || 20000
+  req.query.category_filter = req.query.category_filter || 'landmarks'
+  req.query.limit = req.query.limit > 0 ? req.query.limit : 5
+
+  var sent = false
+
+  var destination = yield createDestinationFromLocationIfNotExists(req.query.location)
+
+  if(!destination || !destination.reference) {
+    console.log("create error: \r\n", destination)
+    res.err(res.errors.FAILED_TO_CREATE_DESTINATION, 400)
+    return
+  }
 
   var places = yield Place.findAll({
     attributes : Place.attr,
     where : {
-      destinationId : req.query.location
+      destinationId : destination.reference
     },
     limit : req.query.limit,
-    include : [Place.Images]
+    include : [PlaceImage]
   })
 
-  var sent = false
-
-  if (places.length >= req.query.limit) {
+  if (places.length + 1 >= req.query.limit) {
     res.spit(places)
     sent = true
   }
@@ -205,13 +205,17 @@ req.query.category_filter = req.query.category_filter || 'landmarks'
 
   yelp.search(req.query, g(function*(error, data) {
     if (error) {
-      res.err(res.errors.UNKNOWN_ERROR, 400)
-      sent = true
+      if(!sent) {
+        console.log("yelp error: \r\n", error)
+        res.err(res.errors.FAILED_TO_SEARCH_YELP, 400)
+        sent = true
+      }
 
     } else {
       for(let _b of data.businesses) {
         let b = {
-          destinationId: req.query.location,
+          place: _b.name + ", " + destination.reference,
+          destinationId: destination.reference,
           name: _b.name,
           rating: _b.rating,
           review_text: _b.snippet_text,
@@ -219,8 +223,7 @@ req.query.category_filter = req.query.category_filter || 'landmarks'
           review_count: _b.review_count,
           phone: _b.display_phone,
           latitude: _b.location.coordinate.latitude,
-          longitude: _b.location.coordinate.longitude,
-          place: _b.location.coordinate.latitude + "," + _b.location.coordinate.longitude
+          longitude: _b.location.coordinate.longitude
         }
 
         let place = yield Place.findOne({
@@ -230,34 +233,14 @@ req.query.category_filter = req.query.category_filter || 'landmarks'
           }
         })
 
-        if (!place) {
-          yield Place.create(b);
-
-          var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=${b.name}, ${req.query.location}&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}`
-          var google_response = yield request(url)
-
-          if (!google_response.error && google_response.statusCode == 200) {
-            var images = JSON.parse(google_response.body).responseData.results
-
-            b.images = []
-            for(let i = 0; i < 4 && i < images.length; i++) {
-              var image = {
-                width: images[i].width,
-                height: images[i].height,
-                url: images[i].url
-              }
-
-              b.images.push(image)
-
-              yield Place.Images.create({
-                placePlace : b.place,
-                url : image.url
-              })
-            }
-          }
+        if (!place && b.destinationId) {
+          place = (yield Place.create(b)).dataValues;
         }
 
-        result.push(b)
+        place.images = yield getImagesFromLocation(place.place)
+        saveImages(place.images, place.place)
+
+        result.push(place)
       }
     }
 
@@ -266,6 +249,128 @@ req.query.category_filter = req.query.category_filter || 'landmarks'
       res.send(result)
     }
   }))
+})
+
+var createDestinationFromObjectIfNotExists = g(function*(d) {
+  d.image = d.image || ''
+  d.reference = d.reference || d.city + ", " + d.country
+
+  var destination = yield Destination.findOne({
+    attributes  : Destination.attr,
+    where       : {
+      reference : d.reference
+    }
+  })
+
+  if (destination)
+    return destination;
+
+  var images = yield getImagesFromLocation(d.reference, 1) || []
+  d.image = images.length >= 1 ? images[0].url : null
+
+  return (yield Destination.create(d)).dataValues;
+})
+
+
+var createDestinationFromLocationIfNotExists = g(function* (location, limit) {
+  if(!location) return null
+
+  var query = {}
+  query.category = query.category || 'CITY'
+  query.limit = query.limit || 3
+  query.query = decodeURIComponent(location).replace(/[ ,]/g, '.')
+  var sabre_query = querystring.stringify(query)
+
+  var destination = yield Destination.findOne({
+    attributes  : Destination.attr,
+    where       : {
+      reference : location
+    }
+  })
+
+  if (destination)
+   return destination
+
+  var sabre_options = {
+   url: `https://api.test.sabre.com/v1/lists/utilities/geoservices/autocomplete?${sabre_query}`,
+   headers: {
+     'Authorization': SABRE_AUTH_HEADER
+   }
+  }
+
+  var sabre_response = yield request(sabre_options)
+
+  if (sabre_response.error || sabre_response.statusCode != 200)
+   return null
+
+  var body = JSON.parse(sabre_response.body)
+
+  var cities = body.Response.grouped["category:CITY"].doclist.docs
+  var item = cities.length > 0 ? cities[0] : null
+
+  if(item == null || !item.city || !item.country)
+   return null
+
+  var city = {}
+  city.reference = item.city + ", " + item.country
+  city.city = item.city
+  city.country = item.country
+  city.latitude = item.latitude
+  city.longitude = item.longitude
+
+  return createDestinationFromObjectIfNotExists(city)
+})
+
+
+var getImagesFromLocation = g(function* (location, limit) {
+  limit = limit || 4
+  console.log("getImagesFromLocation", location, limit)
+
+  var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}&q=${location}`
+  var google_response = yield request(url)
+
+  if (!google_response.error && google_response.statusCode == 200) {
+      var allImages = JSON.parse(google_response.body).responseData.results
+      var images = []
+
+      for(let i = 0; i < limit && i < allImages.length; i++) {
+        var image = {
+          width: allImages[i].width,
+          height: allImages[i].height,
+          url: allImages[i].url
+        }
+
+        images.push(image)
+      }
+
+      return images
+  }
+
+  return []
+})
+
+var saveImages = g(function* (images, placeReference, limit) {
+  if(!placeReference) return false
+  limit = limit > 0 ? limit : 4
+
+  var placeImage = yield PlaceImage.findOne({
+    attributes : PlaceImage.attr,
+    where      : {
+      placePlace : placeReference
+    }
+  })
+
+  if(placeImage)
+    return false
+
+  for(let i = 0; i < limit && i < images.length; i++) {
+    yield PlaceImage.create({
+      placePlace : placeReference,
+      url : images[i].url
+    })
+  }
+
+  return true
 })
 
 /**

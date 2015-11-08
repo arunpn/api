@@ -2,7 +2,7 @@
 
 module.exports = {
     up: function (queryInterface, Sequelize) {
-        queryInterface.createTable('place-images',
+        queryInterface.createTable('placeImages',
             {
                 id : {
                     type          : Sequelize.INTEGER,
@@ -31,6 +31,6 @@ module.exports = {
     },
 
     down: function (queryInterface, Sequelize) {
-        queryInterface.dropTable('place-images')
+        queryInterface.dropTable('placeImages')
     }
 }
