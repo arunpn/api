@@ -9,6 +9,7 @@ var g = require('co-express')
  */
 var Place = sequelize.define('place', {
     destinationId : { type : Sequelize.STRING },
+    weight        : { type : Sequelize.STRING },
     name          : { type : Sequelize.STRING },
     rating        : { type : Sequelize.INTEGER },
     review_text   : { type : Sequelize.STRING },

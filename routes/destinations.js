@@ -141,7 +141,8 @@ var getDetails = g(function* (req, res, next) {
       destinationId : req.query.location
     },
     limit : req.query.limit,
-    include : [Place.Images]
+    include : [Place.Images],
+    order : ['weight']
   })
 
   var sent = false
@@ -170,8 +171,12 @@ var getDetails = g(function* (req, res, next) {
     } else {
       result = []
 
+      var date = new Date().getTime()
+      var i = 0
+      
       for(let _b of data.businesses) {
         var b = {
+          weight: "" + date + (i++),
           destinationId: req.query.location,
           name: _b.name,
           rating: _b.rating,
@@ -226,7 +231,7 @@ var getDetails = g(function* (req, res, next) {
 
     if (!sent) {
       res.setHeader('Content-Type', 'application/json')
-      res.send(result)
+      res.spit(result)
     }
   }))
 })
