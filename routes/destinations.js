@@ -193,9 +193,16 @@ var getDetails = g(function* (req, res, next) {
 
   var sent = false
 
-  if (places.length == req.query.limit) {
-    res.spit(places)
+  places = JSON.parse(JSON.stringify(places))
+
+  if (places.length >= req.query.limit) {
+    for (var i=0; i<places.length; i++) {
+      places[i].images = places[i]['place-images']
+      delete places[i]['place-images']
+    }
+
     sent = true
+    res.spit(places)
   }
 
   req.query = req.query || {}
@@ -203,6 +210,7 @@ var getDetails = g(function* (req, res, next) {
   req.query.sort = req.query.sort || 2
   req.query.radius_filter = req.query.radius_filter || 20000
   req.query.category_filter = req.query.category_filter || 'landmarks'
+  req.query.limit++
 
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
   var result
