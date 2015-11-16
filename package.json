@@ -3,6 +3,9 @@
   "description": "Audio Mail",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "start": "node main.js"
+  },
   "dependencies": {
     "body-parser": "1.14.1",
     "co-express": "1.2.1",
@@ -15,5 +18,8 @@
     "sequelize": "3.13.0",
     "sequelize-cli": "2.0.0",
     "yelp": "^0.2.0"
+  },
+  "engines": {
+    "node": "4.2.1"
   }
 }
