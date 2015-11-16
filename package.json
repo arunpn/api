@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "migration": "sequelize db:migrate",
+    "postinstall": "sequelize db:migrate",
     "start": "node main.js"
   },
   "dependencies": {
