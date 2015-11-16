@@ -12,7 +12,6 @@ var Destination = sequelize.define('destination', {
     weight      : { type : Sequelize.STRING },
     city        : { type : Sequelize.STRING },
     country     : { type : Sequelize.STRING },
-    countryCode : { type : Sequelize.STRING },
     region      : { type : Sequelize.STRING },
     image       : { type : Sequelize.STRING }
 })

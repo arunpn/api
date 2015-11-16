@@ -21,10 +21,6 @@ module.exports = {
                     type      : Sequelize.STRING,
                     allowNull : false
                 },
-                countryCode : {
-                    type      : Sequelize.STRING,
-                    allowNull : false
-                },
                 region : {
                     type      : Sequelize.STRING,
                     allowNull : true
