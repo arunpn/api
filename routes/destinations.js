@@ -199,7 +199,7 @@ var getTop = g(function* (req, res, next) {
   }
 
   var sabre_response = yield request(sabre_options)
-  var result
+  var result = {}
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
     result.error = sabre_response.error
