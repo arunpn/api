@@ -10,7 +10,8 @@ var g = require('co-express')
  * Loads the models
  */
 var City = require('../models/city')
-var Place = require('../models/place')
+    , Place = require('../models/place')
+    , User = require('../models/user')
 
 /**
  * Generates the place route
@@ -20,7 +21,7 @@ exports = module.exports = (router) => {
     let root = '/places'
 
     router.route(root + '/search')
-        .get(search)
+        .get(User.authenticator, search)
 }
 
 /**
