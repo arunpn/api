@@ -27,6 +27,7 @@ exports = module.exports = (req, res, next) => {
 
         }
 
+        res.statusCode = status
         res.status(status).send(spittle)
     }
 

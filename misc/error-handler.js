@@ -44,6 +44,7 @@ exports = module.exports = (req, res, next) => {
 
         description += errors[code] + '\' ]'
 
+        res.statusCode = status
         res.writeHead(status, description, {'content-type' : 'text/plain'})
         res.end()
     }

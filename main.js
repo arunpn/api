@@ -11,6 +11,7 @@ var express = require('express')
 var routes = require('./routes/main')(router)
     , errHandler = require('./misc/error-handler')
     , formatter = require('./misc/formatter')
+    , logger = require('./misc/logger')
 
 /**
  * Configure the middlewares
@@ -19,10 +20,7 @@ app.use(bodyParser.urlencoded({ extended : true }))
 app.use('/docs', express.static('docs'));
 app.use(errHandler)
 app.use(formatter)
-app.use((req, res, next) => {
-    console.log("["+req.method+"] "+req.url)
-    next()
-})
+app.use(logger)
 
 /**
  * Configure the app routes
