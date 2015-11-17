@@ -17,7 +17,6 @@ var routes = require('./routes/main')(router)
  * Configure the middlewares
  */
 app.use(bodyParser.urlencoded({ extended : true }))
-app.use('/docs', express.static('docs'));
 app.use(errHandler)
 app.use(formatter)
 app.use(logger)
@@ -27,7 +26,6 @@ app.use(logger)
  */
 app.use('/', router)
 
-app.use('/images', express.static('images'));
 /**
  * Runs the server
  */
