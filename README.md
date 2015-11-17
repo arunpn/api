@@ -4,7 +4,7 @@ This is the official source-code for **Travll** API.
 
 ## Installation
 
-```javascript
+```bash
 $ git clone https://github.com/travll/api.git travll-api
 $ cd travll-api
 $ sudo npm install
