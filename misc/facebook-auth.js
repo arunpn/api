@@ -8,7 +8,7 @@ var fb = require('fb')
 exports = module.exports = (accessToken) => {
     return new Promise(function(resolve, reject) {
         fb.setAccessToken(accessToken);
-        fb.api('me', function(fbRes) {
+        fb.api('me?fields=name,email,picture.type(large)', function(fbRes) {
             resolve(fbRes)
         })
     })

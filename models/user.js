@@ -16,7 +16,11 @@ var g = require('co-express')
  * The user model
  */
 var User = sequelize.define('user', {
-    id         : { type : Sequelize.INTEGER, primaryKey : true },
+    id : {
+        type          : Sequelize.INTEGER,
+        primaryKey    : true,
+        autoIncrement : true
+    },
     name       : { type : Sequelize.STRING },
     email      : { type : Sequelize.STRING },
     facebookId : { type : Sequelize.STRING },
