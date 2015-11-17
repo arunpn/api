@@ -8,21 +8,23 @@ var g = require('co-express')
  * The place model
  */
 var Place = sequelize.define('place', {
-    destinationId : { type : Sequelize.STRING },
-    weight        : { type : Sequelize.STRING },
-    name          : { type : Sequelize.STRING },
-    rating        : { type : Sequelize.INTEGER },
-    review_text   : { type : Sequelize.STRING },
-    review_image  : { type : Sequelize.STRING },
-    review_count  : { type : Sequelize.INTEGER },
-    phone         : { type : Sequelize.STRING },
-    latitude      : { type : Sequelize.STRING },
-    longitude     : { type : Sequelize.STRING },
-    place         : { type : Sequelize.STRING, primaryKey : true }
+    id          : { type : Sequelize.INTEGER, primaryKey : true },
+    cityId      : { type : Sequelize.INTEGER },
+    name        : { type : Sequelize.STRING  },
+    rating      : { type : Sequelize.INTEGER },
+    reviewText  : { type : Sequelize.STRING  },
+    reviewImage : { type : Sequelize.STRING  },
+    reviewCount : { type : Sequelize.INTEGER },
+    telephone   : { type : Sequelize.STRING  },
+    location    : { type : Sequelize.STRING  }
 })
 
+/**
+ * The place image model
+ */
 var PlaceImage = sequelize.define('placeImage', {
-    url     : { type : Sequelize.STRING }
+    placeId : { type : Sequelize.INTEGER },
+    url     : { type : Sequelize.STRING  }
 })
 
 /**
@@ -49,8 +51,10 @@ PlaceImage.attr = {
     /* all */
 }
 
+// Associates PlaceImage with Place
+Place.Image = PlaceImage
+
 /**
  * Expose models/place
  */
-module.exports.Place = Place
-module.exports.PlaceImage = PlaceImage
+exports = module.exports = Place

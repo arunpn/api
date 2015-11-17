@@ -1,24 +1,28 @@
-'use strict'
+'use strict';
 
 module.exports = {
     up: function (queryInterface, Sequelize) {
-        queryInterface.createTable('placeImages',
+        queryInterface.createTable('userTokens',
             {
                 id : {
                     type          : Sequelize.INTEGER,
                     primaryKey    : true,
                     autoIncrement : true
                 },
-                placeId : {
+                userId : {
                     type       : Sequelize.INTEGER,
                     references : {
-                        model : 'places',
+                        model : 'users',
                         key   : 'id'
-                    }
+                    },
+                    allowNull : false
                 },
-                url : {
+                accessToken : {
                     type      : Sequelize.STRING,
                     allowNull : false
+                },
+                expireAt : {
+                    type : Sequelize.DATE
                 },
                 createdAt : {
                     type : Sequelize.DATE
@@ -31,6 +35,6 @@ module.exports = {
     },
 
     down: function (queryInterface, Sequelize) {
-        queryInterface.dropTable('placeImages')
+        queryInterface.dropTable('userTokens')
     }
-}
+};

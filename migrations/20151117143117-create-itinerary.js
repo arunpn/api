@@ -1,22 +1,31 @@
-'use strict'
+'use strict';
 
 module.exports = {
     up: function (queryInterface, Sequelize) {
-        queryInterface.createTable('placeImages',
+        queryInterface.createTable('itineraries',
             {
                 id : {
                     type          : Sequelize.INTEGER,
                     primaryKey    : true,
                     autoIncrement : true
                 },
-                placeId : {
+                userId : {
                     type       : Sequelize.INTEGER,
                     references : {
-                        model : 'places',
+                        model : 'users',
                         key   : 'id'
-                    }
+                    },
+                    allowNull : false
                 },
-                url : {
+                cityId : {
+                    type       : Sequelize.INTEGER,
+                    references : {
+                        model : 'cities',
+                        key   : 'id'
+                    },
+                    allowNull : false
+                },
+                name : {
                     type      : Sequelize.STRING,
                     allowNull : false
                 },
@@ -31,6 +40,6 @@ module.exports = {
     },
 
     down: function (queryInterface, Sequelize) {
-        queryInterface.dropTable('placeImages')
+        queryInterface.dropTable('itineraries')
     }
-}
+};

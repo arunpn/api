@@ -4,20 +4,16 @@ module.exports = {
     up: function (queryInterface, Sequelize) {
         queryInterface.createTable('places',
             {
-                weight : {
-                    type          : Sequelize.STRING,
-                    allowNull     : false
+                id : {
+                    type          : Sequelize.INTEGER,
+                    primaryKey    : true,
+                    autoIncrement : true
                 },
-                place : {
-                    type       : Sequelize.STRING,
-                    allowNull  : false,
-                    primaryKey : true
-                },
-                destinationId : {
-                    type       : Sequelize.STRING,
+                cityId : {
+                    type       : Sequelize.INTEGER,
                     references : {
-                        model : 'destinations',
-                        key   : 'reference'
+                        model : 'cities',
+                        key   : 'id'
                     }
                 },
                 name : {
@@ -28,27 +24,23 @@ module.exports = {
                     type      : Sequelize.INTEGER,
                     allowNull : true
                 },
-                review_text : {
+                reviewText : {
                     type      : Sequelize.STRING,
                     allowNull : true
                 },
-                review_image : {
+                reviewImage : {
                     type      : Sequelize.STRING,
                     allowNull : true
                 },
-                review_count : {
+                reviewCount : {
                     type      : Sequelize.INTEGER,
                     allowNull : true
                 },
-                phone : {
+                telephone : {
                     type      : Sequelize.STRING,
                     allowNull : true
                 },
-                latitude : {
-                    type      : Sequelize.STRING,
-                    allowNull : false
-                },
-                longitude : {
+                location : {
                     type      : Sequelize.STRING,
                     allowNull : false
                 },

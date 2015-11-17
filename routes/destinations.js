@@ -6,28 +6,12 @@ var g = require('co-express')
     , request = require('co-request')
     , querystring = require('querystring')
 
-var requestPipToFile = function(url, filepath) {
-    return new Promise(function(resolve, reject) {
-        try {
-            var stream = fs.createWriteStream(filepath);
-            stream.on('finish', function() {
-                console.log("pipe finish");
-                return resolve(true);
-            });
-            return request5(url).pipe(stream);
-        } catch (e) {
-            return reject(e);
-        }
-    });
-};
-
 /**
  * Models
  */
-var Destination = require('../models/destination')
-var _Place = require('../models/place')
-var Place = _Place.Place
-var PlaceImage = _Place.PlaceImage
+var Destination = require('../models/city')
+var Place = require('../models/place')
+var PlaceImage = Place.Image
 
 let GOOGLE_API_KEY = 'AIzaSyB5Q4l1SFgRemCPGFtmXYQyj_tpjKXpB-0'
 let YELP_OAUTH_CONSUMER_KEY = '8Bi6DFWjnldZgFpnb0Rl7g'
@@ -60,14 +44,14 @@ String.prototype.hashCode = function() {
  * @param express.Router router
  */
 var destination = (router) => {
-    router.route('/search')
+    /*router.route('/search')
         .get(search)
 
     router.route('/destinations/top')
         .get(getTop)
 
     router.route('/destination/')
-        .get(getAttractions)
+        .get(getAttractions)*/
 }
 
 /**
@@ -185,7 +169,7 @@ var getTop = g(function* (req, res, next) {
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
     if(!sent) {
-      console.log("sabre error: \r\n", sabre_response.error)
+      console.log("sabre - error: \r\n", sabre_response)
       res.err(res.errors.FAILED_TO_GET_TOP_DESTINATIONS, sabre_response.statusCode)
       sent = true
     }

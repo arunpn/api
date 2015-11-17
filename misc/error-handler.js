@@ -10,6 +10,8 @@ var errors = {
     '103' : 'Failed to search for location',
     '104' : 'Failed to get top destinations',
     '105' : 'Failed to search on Yelp',
+    '106' : 'City id not found',
+    '107' : 'Access denied (token might be expired)',
 
     /**
      * Helpers
@@ -20,6 +22,8 @@ var errors = {
     FAILED_TO_SEARCH_LOCATION : 103,
     FAILED_TO_GET_TOP_DESTINATIONS : 104,
     FAILED_TO_SEARCH_YELP : 105,
+    CITY_ID_NOT_FOUND : 106,
+    ACCESS_DENIED : 107
 }
 
 /**

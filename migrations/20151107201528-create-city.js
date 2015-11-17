@@ -2,18 +2,19 @@
 
 module.exports = {
     up: function (queryInterface, Sequelize) {
-        queryInterface.createTable('destinations',
+        queryInterface.createTable('cities',
             {
-                weight : {
-                    type          : Sequelize.STRING,
-                    allowNull     : true
+                id : {
+                    type          : Sequelize.INTEGER,
+                    primaryKey    : true,
+                    autoIncrement : true
                 },
                 reference : {
                     type       : Sequelize.STRING,
                     allowNull  : false,
                     primaryKey : true
                 },
-                city : {
+                name : {
                     type       : Sequelize.STRING,
                     allowNull  : false
                 },
@@ -25,7 +26,7 @@ module.exports = {
                     type      : Sequelize.STRING,
                     allowNull : true
                 },
-                image : {
+                picture : {
                     type      : Sequelize.STRING,
                     allowNull : true
                 },
@@ -40,6 +41,6 @@ module.exports = {
     },
 
     down: function (queryInterface, Sequelize) {
-        queryInterface.dropTable('destinations')
+        queryInterface.dropTable('cities')
     }
 }
