@@ -16,11 +16,12 @@ var routes = require('./routes/main')(router)
  * Configure the middlewares
  */
 app.use(bodyParser.urlencoded({ extended : true }))
+app.use('/docs', express.static('docs'));
 app.use(errHandler)
 app.use(formatter)
 app.use((req, res, next) => {
-  console.log("["+req.method+"] "+req.url)
-  next()
+    console.log("["+req.method+"] "+req.url)
+    next()
 })
 
 /**

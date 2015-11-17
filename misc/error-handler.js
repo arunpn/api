@@ -12,6 +12,7 @@ var errors = {
     '105' : 'Failed to search on Yelp',
     '106' : 'City id not found',
     '107' : 'Access denied (token might be expired)',
+    '108' : 'Facebook token denied',
 
     /**
      * Helpers
@@ -23,7 +24,8 @@ var errors = {
     FAILED_TO_GET_TOP_DESTINATIONS : 104,
     FAILED_TO_SEARCH_YELP : 105,
     CITY_ID_NOT_FOUND : 106,
-    ACCESS_DENIED : 107
+    ACCESS_DENIED : 107,
+    FB_TOKEN_DENIED : 108
 }
 
 /**

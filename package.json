@@ -13,6 +13,7 @@
     "co-request": "^1.0.0",
     "dotenv": "1.2.0",
     "express": "4.13.3",
+    "fb": "^0.7.3",
     "moment": "^2.10.6",
     "mysql": "2.9.0",
     "querystring": "^0.2.0",
