@@ -14,6 +14,7 @@ var errors = {
   '107' : 'Access denied (token might be expired)',
   '108' : 'Facebook token denied',
   '109' : 'Itinerary not found',
+  '110' : 'City not found',
 
   /**
    * Helpers
@@ -27,7 +28,8 @@ var errors = {
   CITY_ID_NOT_FOUND : 106,
   ACCESS_DENIED : 107,
   FB_TOKEN_DENIED : 108,
-  ITINERARY_NOT_FOUND : 109
+  ITINERARY_NOT_FOUND : 109,
+  CITY_NOT_FOUND : 110
 }
 
 /**

@@ -11,7 +11,11 @@ var User = require('./user')
   * The itinerary model
   */
 var Itinerary = sequelize.define('itinerary', {
-  id          : { type : Sequelize.INTEGER, primaryKey : true },
+  id : {
+    type          : Sequelize.INTEGER,
+    primaryKey    : true,
+    autoIncrement : true
+  },
   userId      : { type : Sequelize.INTEGER },
   cityId      : { type : Sequelize.INTEGER },
   name        : { type : Sequelize.STRING  }

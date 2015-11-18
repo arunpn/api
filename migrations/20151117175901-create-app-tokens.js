@@ -9,10 +9,10 @@ module.exports = {
           primaryKey    : true
         },
         token: {
-          type          : Sequelize.STRING
+          type          : Sequelize.TEXT
         },
         type: {
-          type          : Sequelize.TEXT,
+          type          : Sequelize.STRING,
           allowNull     : true
         },
         expireAt: {

@@ -24,10 +24,7 @@ exports = module.exports = (router) => {
   let root = '/cities'
 
   router.route(root + '/search')
-    .get(User.authenticator, search)
-
-  router.route(root + '/top')
-    .get(top)
+    .get(search)
 
   router.route(root + '/:id')
     .get(User.authenticator, get)
@@ -41,9 +38,8 @@ exports = module.exports = (router) => {
 var search = g(function* (req, res, next) {
   var name     = req.query.name     || ''
   var country  = req.query.country  || ''
-  var category = req.query.category || 'CITY'
-  var limit    = req.query.limit
-  var offset   = req.query.offset
+  var limit    = req.query.limit    || 3
+  var offset   = req.query.offset   || 0
 
   var cities = yield City.findAll({
     attributes : City.attr,
@@ -68,7 +64,12 @@ var search = g(function* (req, res, next) {
 
     name = name.replace(/[ ,]/g, ".")
 
-    var sabreQuery = querystring.stringify(name)
+    var sabreQuery = querystring.stringify({
+      query    : name,
+      category : 'CITY',
+      limit    : limit
+    })
+
     var sabreToken = yield sabre.getAppToken()
 
     var options = {
@@ -106,12 +107,8 @@ var search = g(function* (req, res, next) {
       cities = []
 
       for (let _city of body.Response.grouped["category:CITY"].doclist.docs) {
-        let reference = crypto.createHash('sha256')
-        reference.update(_city.city.toLowerCase())
-        reference.update(_city.country.toLowerCase())
 
         var city = {
-          reference : reference.digest('base64'),
           name      : _city.city,
           country   : _city.country,
           latitude  : _city.latitude,
@@ -121,7 +118,7 @@ var search = g(function* (req, res, next) {
         if (city.name && city.country) {
           city = yield City.createFromObject(city)
 
-          result.push(cities)
+          cities.push(city)
         }
 
       }
@@ -129,87 +126,6 @@ var search = g(function* (req, res, next) {
   }
 
   res.spit(cities)
-})
-
-/**
- * Returns popular destinations based on a location
- */
-var top = g(function* (req, res, next) {
-
-  var cities = yield City.findAll({
-    attributes : City.attr,
-    limit      : req.query.limit
-  })
-
-  if (cities.length + 1 >= req.query.limit) {
-    res.spit(cities)
-    return
-  }
-
-  var origincountry   = req.query.origincountry   || 'BR'
-  var lookbackweeks   = req.query.lookbackweeks   || 8
-  var topdestinations = req.query.topdestinations || (req.query.limit > 0 ? req.query.limit : 5)
-
-  var sabreQuery = querystring.stringify(req.query)
-  var sabreToken = yield sabre.getAppToken()
-
-  var options = {
-    url: `https://api.test.sabre.com/v1/lists/top/destinations?${sabreQuery}`,
-    headers: {
-      'Authorization': `${sabreToken.type} ${sabreToken.token}`
-    }
-  }
-
-  var sabreRes = yield request(options)
-
-  if (sabreRes.error || sabreRes.statusCode != 200) {
-
-    console.log("sabre error: ", sabreRes.statusCode, sabreRes.error)
-
-    // Access denied, token is probably expired
-    if (sabreRes.statusCode == 401) {
-      yield AppToken.refresh(sabre.ID)
-      return yield top(req, res, next)
-    }
-
-    // Couldn't refresh token...
-    // Try to return cities from database
-    if (cities.length > 0) {
-      res.spit(cities)
-    } else {
-      res.err(res.errors.FAILED_TO_GET_TOP_DESTINATIONS, sabreRes.statusCode)
-    }
-
-    return
-
-  } else {
-
-    var body = JSON.parse(sabreRes.body)
-
-    var cities = []
-
-    for (let _city of body.Destinations) {
-
-      let reference = crypto.createHash('sha256')
-      reference.update(_city.city.toLowerCase())
-      reference.update(_city.country.toLowerCase())
-
-      var city = {
-        reference : reference.digest('base64'),
-        name      : _city.Destination.DestinationName || _city.Destination.MetropolitanAreaName || '',
-        country   : _city.Destination.CountryCode,
-        latitude  : _city.Destination.Latitude,
-        ongitude  : _city.Destination.Longitude
-      }
-
-      city = yield City.createFromObject(city)
-
-      cities.push(city)
-    }
-  }
-
-  res.spit(cities)
-
 })
 
 /**
