@@ -40,8 +40,12 @@ module.exports = {
           type      : Sequelize.STRING,
           allowNull : true
         },
-        location : {
-          type      : Sequelize.STRING,
+        latitude : {
+          type      : Sequelize.DOUBLE,
+          allowNull : false
+        },
+        longitude : {
+          type      : Sequelize.DOUBLE,
           allowNull : false
         },
         createdAt : {
