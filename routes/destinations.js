@@ -1,31 +1,21 @@
 'use strict'
 
-var g = require('co-express')
-    , fs = require('fs')
-    , request5 = require('request')
-    , request = require('co-request')
-    , querystring = require('querystring')
-
-/**
- * Models
- */
-var Destination = require('../models/city')
-var Place = require('../models/place')
-var PlaceImage = Place.Image
-
-let GOOGLE_API_KEY = 'AIzaSyB5Q4l1SFgRemCPGFtmXYQyj_tpjKXpB-0'
-let YELP_OAUTH_CONSUMER_KEY = '8Bi6DFWjnldZgFpnb0Rl7g'
-let YELP_OAUTH_CONSUMER_SECRET = 'oQwVUPVZzSMW4HSII0NfSadBuqE'
-let YELP_OAUTH_TOKEN = 'kHOEFyvtDyUC7j-5nJ4MHfg_otpKSBcu'
-let YELP_OAUTH_TOKEN_SECRET = 'A0gM8aHoJ7tjP3UKTKaoPMrysdk'
-let YELP_OAUTH_SIGNATURE_METHOD = 'HMAC-SHA1'
-let SABRE_AUTH_HEADER = 'Bearer T1RLAQITHiOB25iRslvyGrLuQDLlWioUNBBKWV7H/qncjBelC1wBzfPEAACgDnwfU7sLqEgGwMMFm9AqZrKkj/oKU9Zs2udW3vS8LX506n7wQCajp7SS8H3dIiMhk0LmJIhubQV69WCqVLYts+YAewkeMQelymqP/cL6HchZGpvTAsFOKO3qU/31zDtBAcKbuzLd0vjdn7fMf6TGyNkE72LpNSL8SbZpileBL0RU9qJC61uAeTlA7CrWG09ECO9u3Nc+SejAB8AQoPpK8g**'
+var g           = require('co-express')
+  , fs          = require('fs')
+  , request5    = require('request')
+  , request     = require('co-request')
+  , querystring = require('querystring')
+  , sabre       = require('../misc/sabre-api')
+  , AppToken    = require('../models/appToken')
+  , Destination = require('../models/city')
+  , Place       = require('../models/place')
+  , PlaceImage  = Place.Image
 
 var yelp = require('yelp').createClient({
-  consumer_key: YELP_OAUTH_CONSUMER_KEY,
-  consumer_secret: YELP_OAUTH_CONSUMER_SECRET,
-  token: YELP_OAUTH_TOKEN,
-  token_secret: YELP_OAUTH_TOKEN_SECRET
+  consumer_key: process.env.YELP_OAUTH_CONSUMER_KEY,
+  consumer_secret: process.env.YELP_OAUTH_CONSUMER_SECRET,
+  token: process.env.YELP_OAUTH_TOKEN,
+  token_secret: process.env.YELP_OAUTH_TOKEN_SECRET
 })
 
 String.prototype.hashCode = function() {
@@ -44,14 +34,14 @@ String.prototype.hashCode = function() {
  * @param express.Router router
  */
 var destination = (router) => {
-    /*router.route('/search')
+    router.route('/search')
         .get(search)
 
     router.route('/destinations/top')
         .get(getTop)
 
     router.route('/destination/')
-        .get(getAttractions)*/
+        .get(getAttractions)
 }
 
 /**
@@ -67,7 +57,7 @@ var search = g(function* (req, res, next) {
   }
 
   req.query.category = req.query.category || 'CITY'
-  req.query.limit = req.query.limit || 3
+  req.query.limit = req.query.limit > 0 ? req.query.limit : 3
 
   var destinations = yield Destination.findAll({
     attributes : Destination.attr,
@@ -76,8 +66,7 @@ var search = g(function* (req, res, next) {
         $like : '%'+req.query.query+'%'
       }
     },
-    limit : req.query.limit,
-    order : ['weight']
+    limit : req.query.limit
   })
 
   var sent = false
@@ -91,18 +80,26 @@ var search = g(function* (req, res, next) {
   req.query.query = req.query.query.replace(/[ ,]/g, ".")
 
   var sabre_query = querystring.stringify(req.query)
+  var sabreToken = yield sabre.getAppToken()
 
-  var sabre_options = {
+  var options = {
     url: `https://api.test.sabre.com/v1/lists/utilities/geoservices/autocomplete?${sabre_query}`,
     headers: {
-      'Authorization': SABRE_AUTH_HEADER
+      'Authorization': `${sabreToken.type} ${sabreToken.token}`
     }
   }
 
-  var sabre_response = yield request(sabre_options)
+  var sabre_response = yield request(options)
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
-    console.log("sabre error: \r\n", sabre_response.error)
+    console.log("sabre error: \r\n", sabre_response.statusCode, sabre_response.error)
+
+    //access denied, token is probably expired
+    if(sabre_response.statusCode == 401) {
+      yield AppToken.refresh(sabre.ID)
+      return yield search(req, res, next)
+    }
+
     res.err(res.errors.FAILED_TO_SEARCH_LOCATION, sabre_response.statusCode)
     sent = true
 
@@ -110,17 +107,15 @@ var search = g(function* (req, res, next) {
     var body = JSON.parse(sabre_response.body)
 
     var result = []
-    var time = new Date().getTime()
-    var i = 0
 
     for(let _city of body.Response.grouped["category:CITY"].doclist.docs) {
       var item = {}
-      item.city = _city.city
+      item.name = _city.city
       item.country = _city.country
       item.latitude = _city.latitude
       item.longitude = _city.longitude
 
-      if(item.city && item.country)
+      if(item.name && item.country)
         result.push(item)
     }
 
@@ -135,12 +130,11 @@ var search = g(function* (req, res, next) {
  * Returns popular destinations based on a location
  */
 var getTop = g(function* (req, res, next) {
-  req.query.limit = req.query.limit || 5
+  req.query.limit = req.query.limit > 0 ? req.query.limit : 5
 
   var destinations = yield Destination.findAll({
     attributes : Destination.attr,
-    limit : req.query.limit,
-    order : ['weight']
+    limit : req.query.limit
   })
 
   var sent = false
@@ -153,23 +147,31 @@ var getTop = g(function* (req, res, next) {
   req.query = req.query || {}
   req.query.origincountry = req.query.origincountry || 'BR'
   req.query.lookbackweeks = req.query.lookbackweeks || 8
-  req.query.topdestinations = req.query.topdestinations || req.query.limit || 5
+  req.query.topdestinations = req.query.topdestinations || (req.query.limit > 0 ? req.query.limit : 5)
   delete req.query.limit
 
   var sabre_query = querystring.stringify(req.query)
+  var sabreToken = yield sabre.getAppToken()
 
-  var sabre_options = {
+  var options = {
     url: `https://api.test.sabre.com/v1/lists/top/destinations?${sabre_query}`,
     headers: {
-      'Authorization': SABRE_AUTH_HEADER
+      'Authorization': `${sabreToken.type} ${sabreToken.token}`
     }
   }
 
-  var sabre_response = yield request(sabre_options)
+  var sabre_response = yield request(options)
 
   if (sabre_response.error || sabre_response.statusCode != 200) {
     if(!sent) {
-      console.log("sabre - error: \r\n", sabre_response)
+      console.log("sabre error: ", sabre_response.statusCode, sabre_response.error)
+
+      //access denied, token is probably expired
+      if(sabre_response.statusCode == 401) {
+        yield AppToken.refresh(sabre.ID)
+        return yield getTop(req, res, next)
+      }
+
       res.err(res.errors.FAILED_TO_GET_TOP_DESTINATIONS, sabre_response.statusCode)
       sent = true
     }
@@ -179,13 +181,9 @@ var getTop = g(function* (req, res, next) {
 
     var result = []
 
-    var date = new Date().getTime()
-    var i = 0
-
     for(let _d of body.Destinations) {
       var d = {}
-      d.weight = "" + date + (i++)
-      d.city = _d.Destination.CityName || _d.Destination.MetropolitanAreaName || ''
+      d.name = _d.Destination.DestinationName || _d.Destination.MetropolitanAreaName || ''
       d.country = _d.Destination.CountryCode || ''
       d.region = _d.Destination.RegionName || ''
 
@@ -216,7 +214,7 @@ var getAttractions = g(function* (req, res, next) {
 
   var destination = yield createDestinationFromLocationIfNotExists(req.query.location)
 
-  if(!destination || !destination.reference) {
+  if(!destination || !destination.id) {
     console.log("create error: \r\n", destination)
     res.err(res.errors.FAILED_TO_CREATE_DESTINATION, 400)
     return
@@ -225,7 +223,7 @@ var getAttractions = g(function* (req, res, next) {
   var places = yield Place.findAll({
     attributes : Place.attr,
     where : {
-      destinationId : destination.reference
+      cityId : destination.id
     },
     limit : req.query.limit,
     include : [PlaceImage]
@@ -233,11 +231,9 @@ var getAttractions = g(function* (req, res, next) {
 
   if (places.length + 1 >= req.query.limit) {
     res.spit(places)
-    sent = true
-    res.spit(places)
+    //sent = true
+    return 
   }
-
-  req.query.limit++
 
   //https://api.yelp.com/v2/search/?location=Sao Paulo, Brazil&sort=2&limit=5&radius_filter=20000&category_filter=landmarks
   var result = []
@@ -253,37 +249,33 @@ var getAttractions = g(function* (req, res, next) {
     } else {
       result = []
 
-      var date = new Date().getTime()
-      var i = 0
-
       for(let _b of data.businesses) {
         let b = {
-          place: _b.name + ", " + destination.reference,
-          destinationId: destination.reference,
-          weight: "" + date + (i++),
+          cityId: destination.id,
           name: _b.name,
           rating: _b.rating,
-          review_text: _b.snippet_text,
-          review_image: _b.snippet_image_url,
-          review_count: _b.review_count,
-          phone: _b.display_phone,
-          latitude: _b.location.coordinate.latitude,
-          longitude: _b.location.coordinate.longitude
+          reviewText: _b.snippet_text,
+          reviewImage: _b.snippet_image_url,
+          reviewCount: _b.review_count,
+          telephone: _b.display_phone,
+          location: `${_b.location.coordinate.latitude}, ${_b.location.coordinate.longitude}`
         }
 
         let place = yield Place.findOne({
           attributes : Place.attr,
           where      : {
-            place : b.place
+            cityId : b.cityId,
+            name : b.name
           }
         })
 
-        if (!place && b.destinationId) {
+        if (!place && b.cityId) {
           place = (yield Place.create(b)).dataValues;
         }
 
-        place.images = yield getImagesFromLocation(place.place)
-        saveImages(place.images, place.place)
+        var location = `${place.name}, ${destination.reference}`
+        place.images = yield getImagesFromLocation(location)
+        saveImages(place.images, place.id)
 
         result.push(place)
       }
@@ -297,8 +289,8 @@ var getAttractions = g(function* (req, res, next) {
 })
 
 var createDestinationFromObjectIfNotExists = g(function*(d) {
-  d.image = d.image || ''
-  d.reference = d.reference || d.city + ", " + d.country
+  d.picture = d.picture || ''
+  d.reference = d.reference || d.name + ", " + d.country
 
   var destination = yield Destination.findOne({
     attributes  : Destination.attr,
@@ -311,7 +303,7 @@ var createDestinationFromObjectIfNotExists = g(function*(d) {
     return destination;
 
   var images = yield getImagesFromLocation(d.reference, 1) || []
-  d.image = images.length >= 1 ? images[0].url : null
+  d.picture = images.length >= 1 ? images[0].url : null
 
   return (yield Destination.create(d)).dataValues;
 })
@@ -322,7 +314,7 @@ var createDestinationFromLocationIfNotExists = g(function* (location, limit) {
 
   var query = {}
   query.category = query.category || 'CITY'
-  query.limit = query.limit || 3
+  query.limit = query.limit > 0 ? query.limit : 3
   query.query = decodeURIComponent(location).replace(/[ ,]/g, '.')
   var sabre_query = querystring.stringify(query)
 
@@ -336,17 +328,28 @@ var createDestinationFromLocationIfNotExists = g(function* (location, limit) {
   if (destination)
    return destination
 
-  var sabre_options = {
+ var sabreToken = yield sabre.getAppToken()
+
+  var options = {
    url: `https://api.test.sabre.com/v1/lists/utilities/geoservices/autocomplete?${sabre_query}`,
    headers: {
-     'Authorization': SABRE_AUTH_HEADER
+     'Authorization': `${sabreToken.type} ${sabreToken.token}`
    }
   }
 
-  var sabre_response = yield request(sabre_options)
+  var sabre_response = yield request(options)
 
-  if (sabre_response.error || sabre_response.statusCode != 200)
-   return null
+  if (sabre_response.error || sabre_response.statusCode != 200) {
+    console.log("sabre error: ", sabre_response.statusCode, sabre_response.error)
+
+    //access denied, token is probably expired
+    if(sabre_response.statusCode == 401) {
+      yield AppToken.refresh(sabre.ID)
+      return yield createDestinationFromLocationIfNotExists(location, limit)
+    }
+
+    return null
+  }
 
   var body = JSON.parse(sabre_response.body)
 
@@ -358,7 +361,7 @@ var createDestinationFromLocationIfNotExists = g(function* (location, limit) {
 
   var city = {}
   city.reference = item.city + ", " + item.country
-  city.city = item.city
+  city.name = item.city
   city.country = item.country
   city.latitude = item.latitude
   city.longitude = item.longitude
@@ -368,10 +371,10 @@ var createDestinationFromLocationIfNotExists = g(function* (location, limit) {
 
 
 var getImagesFromLocation = g(function* (location, limit) {
-  limit = limit || 4
+  limit = limit > 0 ? limit : 4
   console.log("getImagesFromLocation", location, limit)
 
-  var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&as_filetype=jpg&imgsz=large&imgtype=photo&key=${GOOGLE_API_KEY}&q=${location}`
+  var url = `http://ajax.googleapis.com/ajax/services/search/images?v=1.0&as_filetype=jpg&imgsz=large&imgtype=photo&key=${process.env.GOOGLE_API_KEY}&q=${location}`
   var google_response = yield request(url)
 
   if (!google_response.error && google_response.statusCode == 200) {
@@ -394,14 +397,14 @@ var getImagesFromLocation = g(function* (location, limit) {
   return []
 })
 
-var saveImages = g(function* (images, placeReference, limit) {
-  if(!placeReference) return false
+var saveImages = g(function* (images, placeId, limit) {
+  if(!placeId) return false
   limit = limit > 0 ? limit : 4
 
   var placeImage = yield PlaceImage.findOne({
     attributes : PlaceImage.attr,
     where      : {
-      placePlace : placeReference
+      placeId : placeId
     }
   })
 
@@ -410,7 +413,7 @@ var saveImages = g(function* (images, placeReference, limit) {
 
   for(let i = 0; i < limit && i < images.length; i++) {
     yield PlaceImage.create({
-      placePlace : placeReference,
+      placeId : placeId,
       url : images[i].url
     })
   }

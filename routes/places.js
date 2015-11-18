@@ -3,15 +3,15 @@
 /**
  * Loads the libraries
  */
-var g = require('co-express')
-    , request = require('co-request')
+var g       = require('co-express')
+  , request = require('co-request')
 
 /**
  * Loads the models
  */
-var City = require('../models/city')
-    , Place = require('../models/place')
-    , User = require('../models/user')
+var City    = require('../models/city')
+  , Place   = require('../models/place')
+  , User    = require('../models/user')
 
 /**
  * Generates the place route
@@ -20,8 +20,7 @@ var City = require('../models/city')
 exports = module.exports = (router) => {
     let root = '/places'
 
-    router.route(root + '/search')
-        .get(User.authenticator, search)
+    router.route(root + '/search').get(User.authenticator, search)
 }
 
 /**

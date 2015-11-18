@@ -3,14 +3,14 @@
 /**
  * Loads the libraries
  */
-var g = require('co-express')
-    , request = require('co-request')
+var g       = require('co-express')
+  , request = require('co-request')
 
 /**
  * Loads the models
  */
-var City = require('../models/city')
-    , User = require('../models/user')
+var City    = require('../models/city')
+    , User  = require('../models/user')
 
 /**
  * Generates the city route

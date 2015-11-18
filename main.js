@@ -3,15 +3,15 @@
 // Loads environment variables
 require('dotenv').load()
 
-var express = require('express')
-    , bodyParser = require('body-parser')
-    , app = express()
-    , router = express.Router()
+var express     = require('express')
+  , bodyParser  = require('body-parser')
+  , app         = express()
+  , router      = express.Router()
 
-var routes = require('./routes/main')(router)
-    , errHandler = require('./misc/error-handler')
-    , formatter = require('./misc/formatter')
-    , logger = require('./misc/logger')
+var routes      = require('./routes/main')(router)
+  , errHandler  = require('./misc/error-handler')
+  , formatter   = require('./misc/formatter')
+  , logger      = require('./misc/logger')
 
 /**
  * Configure the middlewares

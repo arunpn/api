@@ -6,9 +6,6 @@ var isArray = require('./is-array')
  * Expose misc/format
  */
 exports = module.exports = (req, res, next) => {
-    req.query.limit  = req.query.limit  || 20
-    req.query.offset = req.query.offset || 0
-
     if (req.query.limit > 100) {
         req.query.limit = 100
     }
