@@ -10,25 +10,25 @@ var g         = require('co-express')
  * The AppToken model
  */
 var AppToken = sequelize.define('appToken', {
-    id         : { type : Sequelize.STRING, primaryKey : true },
-    token      : { type : Sequelize.TEXT },
-    type       : { type : Sequelize.STRING },
-    expireAt   : { type : Sequelize.DATE }
+  id         : { type : Sequelize.STRING, primaryKey : true },
+  token      : { type : Sequelize.TEXT },
+  type       : { type : Sequelize.STRING },
+  expireAt   : { type : Sequelize.DATE }
 })
 
 /**
  * The AppToken attributes
  */
 AppToken.attr = {
-    /* all */
+  /* all */
 }
 
 /**
  * Check token validation based on expire date
  */
 AppToken.isValid = function (appToken) {
-    if(!appToken || !appToken.token || !appToken.expireAt) return false
-    return moment().isBefore(appToken.expireAt)
+  if(!appToken || !appToken.token || !appToken.expireAt) return false
+  return moment().isBefore(appToken.expireAt)
 }
 
 /**

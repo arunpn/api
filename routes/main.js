@@ -8,15 +8,15 @@ var fs = require('fs')
  */
 var main = (router) => {
 
-    // All route files
-    var files = fs.readdirSync('routes')
+  // All route files
+  var files = fs.readdirSync('routes')
 
-    for (var i in files) {
-        if (files[i] == 'main.js')
-            continue
+  for (var i in files) {
+    if (files[i] == 'main.js')
+      continue
 
-        require('./' + files[i])(router)
-    }
+    require('./' + files[i])(router)
+  }
 }
 
 /**

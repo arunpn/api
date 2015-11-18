@@ -1,9 +1,9 @@
 
 var bold = '\033[1m'
-    , red = '\033[31m'
-    , green = '\033[32m'
-    , yellow = '\033[33m'
-    , end = '\033[0m'
+  , red = '\033[31m'
+  , green = '\033[32m'
+  , yellow = '\033[33m'
+  , end = '\033[0m'
 
 var ss = [200, 201, 204]
 var sc = [304]
@@ -13,33 +13,33 @@ var sc = [304]
  */
 exports = module.exports = (req, res, next) => {
 
-    var before = new Date().getTime()
+  var before = new Date().getTime()
 
-    req.on('end', function() {
+  req.on('end', function() {
 
-        var after = new Date().getTime()
-        var time = after - before
+    var after = new Date().getTime()
+    var time = after - before
 
-        var success = `\
+    var success = `\
 ${bold}${req.method} ${req.route.path} ${end} ${green}(${res.statusCode}, ${time}ms)${end}\
 `
 
-        var cache = `\
+    var cache = `\
 ${bold}${req.method} ${req.route.path} ${end} ${yellow}(${res.statusCode}, ${time}ms)${end}\
 `
 
-        var error = `\
+    var error = `\
 ${bold}${req.method} ${req.route.path} ${end} ${red}(${res.statusCode}, ${time}ms)${end}\
 `
 
-        if (ss.indexOf(res.statusCode) != -1) {
-            console.log(success)
-        } else if (sc.indexOf(res.statusCode) != -1) {
-            console.log(cache)
-        } else {
-            console.log(error)
-        }
-    })
+    if (ss.indexOf(res.statusCode) != -1) {
+      console.log(success)
+    } else if (sc.indexOf(res.statusCode) != -1) {
+      console.log(cache)
+    } else {
+      console.log(error)
+    }
+  })
 
-    next()
+  next()
 }

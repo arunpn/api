@@ -1,60 +1,60 @@
 'use strict'
 
 var g = require('co-express')
-    , Sequelize = require('sequelize')
-    , sequelize = require('../config/database')().sequelize
+  , Sequelize = require('sequelize')
+  , sequelize = require('../config/database')().sequelize
 
 /**
- * The place model
- */
+  * The place model
+  */
 var Place = sequelize.define('place', {
-    id          : { type : Sequelize.INTEGER, primaryKey : true },
-    cityId      : { type : Sequelize.INTEGER },
-    name        : { type : Sequelize.STRING  },
-    rating      : { type : Sequelize.INTEGER },
-    reviewText  : { type : Sequelize.STRING  },
-    reviewImage : { type : Sequelize.STRING  },
-    reviewCount : { type : Sequelize.INTEGER },
-    telephone   : { type : Sequelize.STRING  },
-    location    : { type : Sequelize.STRING  }
+  id          : { type : Sequelize.INTEGER, primaryKey : true },
+  cityId      : { type : Sequelize.INTEGER },
+  name        : { type : Sequelize.STRING  },
+  rating      : { type : Sequelize.INTEGER },
+  reviewText  : { type : Sequelize.STRING  },
+  reviewImage : { type : Sequelize.STRING  },
+  reviewCount : { type : Sequelize.INTEGER },
+  telephone   : { type : Sequelize.STRING  },
+  location    : { type : Sequelize.STRING  }
 })
 
 /**
- * The place image model
- */
+  * The place image model
+  */
 var PlaceImage = sequelize.define('placeImage', {
-    placeId : { type : Sequelize.INTEGER },
-    url     : { type : Sequelize.STRING  }
+  placeId : { type : Sequelize.INTEGER },
+  url     : { type : Sequelize.STRING  }
 })
 
 /**
- * Creates the relationship
- */
+  * Creates the relationship
+  */
 Place.hasMany(PlaceImage)
 
 /**
- * Creates the relationship
- */
+  * Creates the relationship
+  */
 PlaceImage.belongsTo(Place)
 
 /**
- * The place attributes
- */
+  * The place attributes
+  */
 Place.attr = {
-    /* all */
+  /* all */
 }
 
 /**
- * The placeImage attributes
- */
+  * The placeImage attributes
+  */
 PlaceImage.attr = {
-    /* all */
+  /* all */
 }
 
 // Associates PlaceImage with Place
 Place.Image = PlaceImage
 
 /**
- * Expose models/place
- */
+  * Expose models/place
+  */
 exports = module.exports = Place

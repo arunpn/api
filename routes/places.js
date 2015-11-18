@@ -18,9 +18,9 @@ var City    = require('../models/city')
  * @param express.Router router
  */
 exports = module.exports = (router) => {
-    let root = '/places'
+  let root = '/places'
 
-    router.route(root + '/search').get(User.authenticator, search)
+  router.route(root + '/search').get(User.authenticator, search)
 }
 
 /**

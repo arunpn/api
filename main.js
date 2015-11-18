@@ -30,5 +30,5 @@ app.use('/', router)
  * Runs the server
  */
 app.listen(process.env.PORT, () => {
-    console.log('Running at :' + process.env.PORT)
+  console.log('Running at :' + process.env.PORT)
 })
