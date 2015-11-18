@@ -1,7 +1,6 @@
 'use strict'
 
 var g            = require('co-express')
-  , co           = require('co')
   , Sequelize    = require('sequelize')
   , sequelize    = require('../config/database')().sequelize
   , searchImages = require('../misc/search-images.js')
