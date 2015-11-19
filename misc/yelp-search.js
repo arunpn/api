@@ -13,9 +13,12 @@ var yelp = require('yelp').createClient({
 exports = module.exports = (query) => {
   return new Promise(function(resolve, reject) {
     yelp.search(query, function(error, data) {
-      data       = data || {}
-      data.error = error
-
+      if (typeof data != 'object') {
+        data = {
+          error : error
+        }
+      }
+      
       resolve(data)
     })
   })

@@ -110,9 +110,7 @@ var search = g(function* (req, res, next) {
 
         var city = {
           name      : _city.city,
-          country   : _city.country,
-          latitude  : _city.latitude,
-          longitude : _city.longitude
+          country   : _city.country
         }
 
         if (city.name && city.country) {

@@ -39,8 +39,7 @@ exports = module.exports = (router) => {
  * @query (opt) longitude Place longitude (must come with radius)
  */
 var search = g(function* (req, res, next) {
-  var city      = req.query.city      || ''
-  var country   = req.query.country   || ''
+  var city      = req.city
   var radius    = req.query.radius    || ''
   var latitude  = req.query.latitude  || ''
   var longitude = req.query.longitude || ''
@@ -48,59 +47,65 @@ var search = g(function* (req, res, next) {
   var offset    = req.query.offset    || 0
 
   // City is a required parameter
-  if (city == '') {
+  if (!city && (latitude == '' || longitude == '')) {
     res.err(res.errors.QUERY_IS_EMPTY, 400)
     return
   }
 
-  // Lookup for city
-  var city = yield City.createFromLocation(city, country)
+  if (city) {
+    // Search for places within given city
+    var places = yield Place.findAll({
+      attributes : Place.attr,
+      where : {
+        cityId : city.id
+      },
+      limit   : limit,
+      offset  : offset,
+      include : [ Place.Image ]
+    })
 
-  // Couldn't create it, error
-  if (!city) {
-    console.log("create error: \r\n", destination)
-    res.err(res.errors.FAILED_TO_CREATE_DESTINATION, 400)
-    return
+    // If found enough places, return
+    if (places.length == limit) {
+      res.spit(places)
+      return
+    }
   }
 
-  // Search for places within given city
-  var places = yield Place.findAll({
-    attributes : Place.attr,
-    where : {
-      cityId : city.id
-    },
-    limit   : limit,
-    offset  : offset,
-    include : [ Place.Image ]
-  })
-
-  // If found enough places, return
-  if (places.length == limit) {
-    res.spit(places)
-    return
-  }
-
-  places = []
+  var places = []
   var promises = []
 
   // Search for places on Yelp API
-  var data = yield yelpSearch({
-    location        : city.name + ', ' + city.country,
+  var _data = {
     sort            : 2,
     radius_filter   : 20000,
     category_filter : 'landmarks',
     limit           : limit,
     offset          : offset
-  })
+  }
+
+  if (city) {
+    _data.location = city.name + ', ' + city.country
+  } else {
+    _data.ll = latitude + ',' + longitude
+  }
+
+  var data = yield yelpSearch(_data)
 
   if (data.error) {
-    console.log("yelp error: \r\n", error)
+    console.log("yelp error: \r\n", data.error)
     res.err(res.errors.FAILED_TO_SEARCH_YELP, 400)
     return
   }
 
   // Creates all places
   for (let _data of data.businesses) {
+    if (!city) {
+      city = yield City.createFromObject({
+        name    : _data.location.city,
+        country : _data.location.country_code
+      })
+    }
+
     let _place = {
       cityId      : city.id,
       name        : _data.name,
@@ -109,7 +114,7 @@ var search = g(function* (req, res, next) {
       reviewImage : _data.snippet_image_url,
       reviewCount : _data.review_count,
       telephone   : _data.display_phone,
-      location    : _data.location.coordinate.latitude,
+      latitude    : _data.location.coordinate.latitude,
       longitude   : _data.location.coordinate.longitude
     }
 
@@ -119,7 +124,8 @@ var search = g(function* (req, res, next) {
       where      : {
         cityId : _place.cityId,
         name   : _place.name
-      }
+      },
+      include : [ Place.Image ]
     })
 
     // Creates the place
@@ -150,8 +156,7 @@ var getCity = g(function* (req, res, next) {
     return
   }
 
-  req.query.city    = city.name
-  req.query.country = city.country
+  req.city = city
 
   next()
 })
