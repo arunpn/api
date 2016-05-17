@@ -16,15 +16,16 @@ var Place = sequelize.define('place', {
     primaryKey    : true,
     autoIncrement : true
   },
-  cityId      : { type : Sequelize.INTEGER },
-  name        : { type : Sequelize.STRING  },
-  rating      : { type : Sequelize.INTEGER },
-  reviewText  : { type : Sequelize.STRING  },
-  reviewImage : { type : Sequelize.STRING  },
-  reviewCount : { type : Sequelize.INTEGER },
-  telephone   : { type : Sequelize.STRING  },
-  latitude    : { type : Sequelize.DOUBLE  },
-  longitude   : { type : Sequelize.DOUBLE  },
+  cityId    : { type : Sequelize.INTEGER },
+  name      : { type : Sequelize.STRING  },
+  latitude  : { type : Sequelize.DOUBLE  },
+  longitude : { type : Sequelize.DOUBLE  },
+  address   : { type : Sequelize.STRING  },
+  postcode  : { type : Sequelize.STRING  },
+  email     : { type : Sequelize.STRING  },
+  website   : { type : Sequelize.STRING  },
+  telephone : { type : Sequelize.STRING  },
+  factualId : { type : Sequelize.STRING  }
 })
 
 /**
@@ -56,9 +57,9 @@ Place.attr = {
 /**
   * The placeImage attributes
   */
-PlaceImage.attr = {
-  /* all */
-}
+PlaceImage.attr = [
+  'url'
+]
 
 // Associates PlaceImage with Place
 Place.Image = PlaceImage

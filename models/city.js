@@ -6,6 +6,7 @@ var g = require('co-express')
   , sabre     = require('../misc/sabre-api')
 
 var searchImages = require('../misc/search-images.js')
+var Country = require('./country')
 
 /**
  * The city model
@@ -17,7 +18,7 @@ var City = sequelize.define('city', {
     autoIncrement : true
   },
   name      : { type : Sequelize.STRING },
-  country   : { type : Sequelize.STRING },
+  countryId : { type : Sequelize.INTEGER },
   picture   : { type : Sequelize.STRING }
 })
 
@@ -27,6 +28,11 @@ var City = sequelize.define('city', {
 City.attr = {
   /* all */
 }
+
+/**
+  * Creates the relationship
+  */
+City.belongsTo(Country)
 
 /**
  * Creates a city from an object

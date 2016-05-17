@@ -6,12 +6,12 @@
 var g            = require('co-express')
   , request      = require('co-request')
   , yelpSearch   = require('../misc/yelp-search')
-  , searchImages = require('../misc/search-images.js')
 
 /**
  * Loads the models
  */
-var City    = require('../models/city')
+var Country = require('../models/country')
+  , City    = require('../models/city')
   , Place   = require('../models/place')
   , User    = require('../models/user')
 
@@ -22,6 +22,9 @@ var City    = require('../models/city')
 exports = module.exports = (router) => {
   let root = '/places'
 
+  router.route('/cities/:id' + root + '/refresh')
+    .get(refresh)
+
   router.route(root + '/search')
     .get(search)
 
@@ -29,6 +32,58 @@ exports = module.exports = (router) => {
     .get(getCity, search)
 
 }
+
+var refresh = g(function* (req, res, next) {
+  var id = req.params.id
+
+  var city = yield City.findOne({
+    attributes : City.attr,
+    where      : {
+      id : id,
+    },
+    include : [ Country ]
+  })
+
+  /*var options = {
+    url: `http://api.v3.factual.com/t/places?limit=50&filters={"$and":[{"category_labels":{"$includes":"Landmarks"}},{"country":{"$eq":"${city.country.code}"}},{"locality":{"$in":["${city.name}"]}}]}&KEY=WH0VTy9JDLAmmnlfcCXj9PjSHcoNZUimN5qNyP63`
+  }
+
+  var data = yield request(options)
+
+  if (data.error || data.statusCode != 200) {
+    console.log("factual error: \r\n", data.statusCode, data.error)
+    res.spit({ error : data.error })
+    return
+  }
+
+  data = JSON.parse(data.body)
+  data = data.response.data
+
+  for (var i in data) {
+    var place = yield Place.findOne({
+      where : {
+        factualId : data[i].factual_id
+      }
+    })
+
+    if (place) continue
+
+    yield Place.create({
+      cityId    : id,
+      name      : data[i].name,
+      latitude  : data[i].latitude,
+      longitude : data[i].longitude,
+      address   : data[i].address,
+      postcode  : data[i].postcode,
+      email     : data[i].email,
+      website   : data[i].website,
+      telephone : data[i].tel,
+      factualId : data[i].factual_id
+    })
+  }*/
+
+  res.spit(yield Place.findAll({ where : { cityId : id }}))
+})
 
 /**
  * Returns a list of places based on a city, radius or location

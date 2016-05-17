@@ -25,7 +25,7 @@ exports = module.exports = (router) => {
     .get(User.authenticator, me)
 
   router.route(root + '/auth')
-    .get(auth)
+    .post(auth)
 }
 
 /**
@@ -37,10 +37,10 @@ var me = g(function* (req, res, next) {
 
 /**
  * Authenticates an user from its FB token
- * @query fb_token The facebook token
+ * @post fb_token The facebook token
  */
 var auth = g(function* (req, res, next) {
-  let fbToken = req.query.fb_token
+  let fbToken = req.body.fb_token
 
   // Gets the user from facebook
   var fbUser = yield fbAuth(fbToken)

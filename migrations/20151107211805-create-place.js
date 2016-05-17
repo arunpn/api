@@ -20,26 +20,6 @@ module.exports = {
           type       : Sequelize.STRING,
           allowNull  : false
         },
-        rating : {
-          type      : Sequelize.INTEGER,
-          allowNull : true
-        },
-        reviewText : {
-          type      : Sequelize.STRING,
-          allowNull : true
-        },
-        reviewImage : {
-          type      : Sequelize.STRING,
-          allowNull : true
-        },
-        reviewCount : {
-          type      : Sequelize.INTEGER,
-          allowNull : true
-        },
-        telephone : {
-          type      : Sequelize.STRING,
-          allowNull : true
-        },
         latitude : {
           type      : Sequelize.DOUBLE,
           allowNull : false
@@ -47,6 +27,30 @@ module.exports = {
         longitude : {
           type      : Sequelize.DOUBLE,
           allowNull : false
+        },
+        address : {
+          type      : Sequelize.STRING,
+          allowNull : true
+        },
+        postcode : {
+          type      : Sequelize.STRING,
+          allowNull : true
+        },
+        email : {
+          type      : Sequelize.STRING,
+          allowNull : true
+        },
+        website : {
+          type      : Sequelize.STRING,
+          allowNull : true
+        },
+        telephone : {
+          type      : Sequelize.STRING,
+          allowNull : true
+        },
+        factualId : {
+          type      : Sequelize.STRING,
+          allowNull : true
         },
         createdAt : {
           type : Sequelize.DATE

@@ -13,9 +13,12 @@ module.exports = {
           type       : Sequelize.STRING,
           allowNull  : false
         },
-        country : {
-          type      : Sequelize.STRING,
-          allowNull : false
+        countryId : {
+          type       : Sequelize.INTEGER,
+          references : {
+            model : 'countries',
+            key   : 'id'
+          }
         },
         picture : {
           type      : Sequelize.STRING,
